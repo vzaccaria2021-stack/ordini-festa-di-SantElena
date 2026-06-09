@@ -3,23 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Ordini Festa Parrocchiale</title>
+  <title>Admin - Ordini Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 min-h-screen">
   <div class="max-w-6xl mx-auto p-6">
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-4xl font-bold text-amber-900">📊 Admin Ordini</h1>
-      <button onclick="cancellaTuttiOrdini()" 
-              class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-medium">
-        🗑️ Cancella Tutti gli Ordini
+
+    <!-- Header con contatori -->
+    <div class="bg-white rounded-3xl shadow p-6 mb-8">
+      <div class="grid grid-cols-3 gap-6 text-center">
+        <div>
+          <p class="text-sm text-gray-500">Totali</p>
+          <p id="totale-ordini" class="text-4xl font-bold text-amber-800">0</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Da ritirare</p>
+          <p id="da-ritirare" class="text-4xl font-bold text-blue-600">0</p>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Ritirati</p>
+          <p id="ritirati" class="text-4xl font-bold text-green-600">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra di ricerca + Pulsante Reset -->
+    <div class="flex gap-4 mb-6">
+      <div class="flex-1 relative">
+        <input type="text" id="search-input" 
+               class="w-full p-4 pl-12 rounded-3xl border border-gray-300 focus:border-amber-500 outline-none text-lg"
+               placeholder="Cerca per numero ticket o nome cliente...">
+        <i class="fas fa-search absolute left-5 top-5 text-gray-400"></i>
+      </div>
+      <button onclick="resettaTuttiOrdini()" 
+              class="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-3xl font-medium flex items-center gap-2">
+        <i class="fas fa-trash"></i> 
+        Reset Tutti Ordini
       </button>
     </div>
 
     <div class="bg-white rounded-3xl shadow p-6">
       <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
-        <i class="fas fa-list"></i> Lista Ordini Registrati
+        <i class="fas fa-list"></i> Lista Ordini
       </h2>
       
       <div id="lista-ordini" class="space-y-4"></div>
@@ -27,17 +53,29 @@
   </div>
 
   <script>
-    function caricaOrdini() {
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+    let ordini = [];
+
+    function caricaOrdini(filtro = '') {
+      ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+      
+      document.getElementById('totale-ordini').textContent = ordini.length;
+      document.getElementById('da-ritirare').textContent = ordini.length;
+      document.getElementById('ritirati').textContent = 0;
+
       const container = document.getElementById('lista-ordini');
       
       if (ordini.length === 0) {
-        container.innerHTML = `<p class="text-center text-gray-500 py-12 text-xl">Nessun ordine registrato ancora</p>`;
+        container.innerHTML = `<p class="text-center text-gray-500 py-12 text-xl">Nessun ordine registrato</p>`;
         return;
       }
 
       let html = '';
-      ordini.forEach(ordine => {
+      const filtered = ordini.filter(ordine => 
+        ordine.numero.toString().includes(filtro) || 
+        ordine.cliente.toLowerCase().includes(filtro.toLowerCase())
+      );
+
+      filtered.forEach(ordine => {
         html += `
           <div class="border border-gray-200 rounded-2xl p-5 hover:shadow-md transition">
             <div class="flex justify-between items-start">
@@ -49,7 +87,6 @@
                 <span class="text-2xl font-bold text-green-600">${ordine.totale.toFixed(2)} €</span>
               </div>
             </div>
-            
             <div class="mt-3">
               <p class="font-semibold text-lg">${ordine.cliente}</p>
               <p class="text-gray-600 mt-1">${ordine.items.join(' • ')}</p>
@@ -57,19 +94,27 @@
           </div>`;
       });
       
-      container.innerHTML = html;
+      container.innerHTML = html || `<p class="text-center text-gray-500 py-8">Nessun ordine trovato</p>`;
     }
 
-    function cancellaTuttiOrdini() {
-      if (confirm("⚠️ Vuoi davvero cancellare TUTTI gli ordini? Questa azione non si può annullare.")) {
+    function resettaTuttiOrdini() {
+      if (confirm("⚠️ ATTENZIONE!\nVuoi davvero cancellare TUTTI gli ordini?\nQuesta azione NON si può annullare.")) {
         localStorage.removeItem('ordiniFesta');
+        document.getElementById('search-input').value = '';
         caricaOrdini();
-        alert("Tutti gli ordini sono stati cancellati.");
+        alert("✅ Tutti gli ordini sono stati resettati.");
       }
     }
 
-    // Ricarica gli ordini ogni 5 secondi (utile se usi più dispositivi)
-    setInterval(caricaOrdini, 5000);
+    // Ricerca in tempo reale
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      caricaOrdini(e.target.value);
+    });
+
+    // Aggiorna automaticamente ogni 5 secondi
+    setInterval(() => caricaOrdini(document.getElementById('search-input').value), 5000);
+    
+    // Carica all'avvio
     caricaOrdini();
   </script>
 </body>
