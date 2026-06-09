@@ -10,7 +10,7 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="max-w-6xl mx-auto p-6">
 
-    <!-- Header con contatori -->
+    <!-- Contatori -->
     <div class="bg-white rounded-3xl shadow p-6 mb-8">
       <div class="grid grid-cols-3 gap-6 text-center">
         <div>
@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <!-- Barra di ricerca + Pulsante Reset -->
+    <!-- Ricerca + Reset -->
     <div class="flex gap-4 mb-6">
       <div class="flex-1 relative">
         <input type="text" id="search-input" 
@@ -38,33 +38,30 @@
       </div>
       <button onclick="resettaTuttiOrdini()" 
               class="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-3xl font-medium flex items-center gap-2">
-        <i class="fas fa-trash"></i> 
-        Reset Tutti Ordini
+        <i class="fas fa-trash"></i> Reset Tutti
       </button>
     </div>
 
     <div class="bg-white rounded-3xl shadow p-6">
-      <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
-        <i class="fas fa-list"></i> Lista Ordini
-      </h2>
-      
+      <h2 class="text-2xl font-bold mb-6">Lista Ordini</h2>
       <div id="lista-ordini" class="space-y-4"></div>
     </div>
   </div>
 
   <script>
-    let ordini = [];
-
     function caricaOrdini(filtro = '') {
-      ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
       
-      document.getElementById('totale-ordini').textContent = ordini.length;
-      document.getElementById('da-ritirare').textContent = ordini.length;
-      document.getElementById('ritirati').textContent = 0;
+      const totali = ordini.length;
+      const ritirati = ordini.filter(o => o.ritirato).length;
+      const daRitirare = totali - ritirati;
+
+      document.getElementById('totale-ordini').textContent = totali;
+      document.getElementById('da-ritirare').textContent = daRitirare;
+      document.getElementById('ritirati').textContent = ritirati;
 
       const container = document.getElementById('lista-ordini');
-      
-      if (ordini.length === 0) {
+      if (totali === 0) {
         container.innerHTML = `<p class="text-center text-gray-500 py-12 text-xl">Nessun ordine registrato</p>`;
         return;
       }
@@ -75,9 +72,13 @@
         ordine.cliente.toLowerCase().includes(filtro.toLowerCase())
       );
 
-      filtered.forEach(ordine => {
+      filtered.forEach((ordine, index) => {
+        const isRitirato = ordine.ritirato || false;
+        const orarioConsegna = ordine.orarioConsegna ? 
+          `<span class="text-green-600 text-sm">📍 Consegnato alle ${ordine.orarioConsegna}</span>` : '';
+
         html += `
-          <div class="border border-gray-200 rounded-2xl p-5 hover:shadow-md transition">
+          <div class="border ${isRitirato ? 'border-green-300 bg-green-50' : 'border-gray-200'} rounded-2xl p-5">
             <div class="flex justify-between items-start">
               <div>
                 <span class="text-3xl font-bold text-amber-800">#${ordine.numero.toString().padStart(3, '0')}</span>
@@ -87,9 +88,20 @@
                 <span class="text-2xl font-bold text-green-600">${ordine.totale.toFixed(2)} €</span>
               </div>
             </div>
+            
             <div class="mt-3">
               <p class="font-semibold text-lg">${ordine.cliente}</p>
-              <p class="text-gray-600 mt-1">${ordine.items.join(' • ')}</p>
+              <p class="text-gray-600">${ordine.items.join(' • ')}</p>
+              ${orarioConsegna}
+            </div>
+
+            <div class="mt-4">
+              <button onclick="toggleRitirato(${index})" 
+                      class="w-full py-3 rounded-2xl font-medium ${isRitirato ? 
+                        'bg-gray-300 text-gray-700' : 
+                        'bg-green-600 hover:bg-green-700 text-white'}">
+                ${isRitirato ? '✓ Già Consegnato' : '✅ Segna come Consegnato'}
+              </button>
             </div>
           </div>`;
       });
@@ -97,24 +109,35 @@
       container.innerHTML = html || `<p class="text-center text-gray-500 py-8">Nessun ordine trovato</p>`;
     }
 
+    function toggleRitirato(globalIndex) {
+      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+      
+      if (!ordini[globalIndex].ritirato) {
+        ordini[globalIndex].ritirato = true;
+        ordini[globalIndex].orarioConsegna = new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+      } else {
+        ordini[globalIndex].ritirato = false;
+        delete ordini[globalIndex].orarioConsegna;
+      }
+      
+      localStorage.setItem('ordiniFesta', JSON.stringify(ordini));
+      caricaOrdini(document.getElementById('search-input').value);
+    }
+
     function resettaTuttiOrdini() {
-      if (confirm("⚠️ ATTENZIONE!\nVuoi davvero cancellare TUTTI gli ordini?\nQuesta azione NON si può annullare.")) {
+      if (confirm("⚠️ Vuoi cancellare TUTTI gli ordini?")) {
         localStorage.removeItem('ordiniFesta');
-        document.getElementById('search-input').value = '';
         caricaOrdini();
-        alert("✅ Tutti gli ordini sono stati resettati.");
       }
     }
 
-    // Ricerca in tempo reale
+    // Ricerca live
     document.getElementById('search-input').addEventListener('input', (e) => {
       caricaOrdini(e.target.value);
     });
 
-    // Aggiorna automaticamente ogni 5 secondi
+    // Aggiornamento automatico
     setInterval(() => caricaOrdini(document.getElementById('search-input').value), 5000);
-    
-    // Carica all'avvio
     caricaOrdini();
   </script>
 </body>
