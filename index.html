@@ -3,42 +3,93 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ordini Festa Parrocchiale</title>
+  <title>Ordini - Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
-<body class="bg-orange-50 min-h-screen">
-  <div class="max-w-4xl mx-auto p-4">
-    <h1 class="text-4xl font-bold text-center text-amber-900 mb-2">🎉 Festa Parrocchiale</h1>
-    <p class="text-center text-xl text-amber-700 mb-8" id="data-titolo">Menu del 09-06-2026</p>
+<body class="bg-orange-50">
+  <div class="max-w-7xl mx-auto p-4">
+    <h1 class="text-4xl font-bold text-center text-amber-900 mb-2">🎉 Festa di Sant'Elena</h1>
+    <p class="text-center text-xl text-amber-700 mb-6">Menu del 09-06-2026</p>
 
-    <!-- Nome Cliente + Numero Ordine -->
-    <div class="grid grid-cols-2 gap-4 mb-8">
-      <input type="text" id="nome-cliente" class="p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
-      <div class="bg-white p-4 rounded-2xl border-2 border-amber-300 text-center">
-        <span class="text-sm text-gray-500">Numero Ordine</span><br>
-        <span id="numero-ordine" class="text-3xl font-bold text-amber-800">#001</span>
+    <div class="grid grid-cols-12 gap-6">
+
+      <!-- COLONNA SINISTRA: Giacenza Magazzino -->
+      <div class="col-span-3 bg-white rounded-3xl shadow p-5">
+        <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
+        <div id="giacenza" class="space-y-3 text-sm"></div>
+      </div>
+
+      <!-- CENTRO: Menu -->
+      <div class="col-span-6">
+        <div class="mb-6">
+          <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
+        </div>
+
+        <div id="menu-grid" class="grid grid-cols-1 gap-4"></div>
+      </div>
+
+      <!-- COLONNA DESTRA: Cronologia + Totale -->
+      <div class="col-span-3 space-y-6">
+
+        <!-- Riepilogo Ordine -->
+        <div class="bg-white rounded-3xl shadow p-5">
+          <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
+          <div id="ordine-corrente" class="min-h-[200px] text-sm"></div>
+
+          <div class="mt-6 space-y-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Importo Consegnato (€)</label>
+              <input type="number" id="importo-consegnato" step="0.5" value="0" 
+                     class="w-full p-3 rounded-2xl border-2 border-green-300 text-2xl text-center font-bold"
+                     oninput="calcolaResto()">
+            </div>
+            <div class="flex justify-between text-lg font-bold">
+              <span>Totale Ordine:</span>
+              <span id="totale-ordine" class="text-green-600">0.00 €</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold text-red-600">
+              <span>Resto da dare:</span>
+              <span id="resto">0.00 €</span>
+            </div>
+          </div>
+
+          <button onclick="confermaOrdine()" 
+                  class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
+            ✅ CONFERMA ORDINE
+          </button>
+        </div>
+
+        <!-- Cronologia -->
+        <div class="bg-white rounded-3xl shadow p-5">
+          <h3 class="font-bold mb-4">📋 Cronologia Ordini</h3>
+          <div id="cronologia" class="max-h-[500px] overflow-auto space-y-3 text-sm"></div>
+        </div>
       </div>
     </div>
-
-    <!-- Griglia Menu -->
-    <div id="menu-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
-  </div>
-
-  <!-- Pannello Totale e Conferma -->
-  <div class="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-amber-400 shadow-2xl p-6 max-w-4xl mx-auto">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-2xl font-bold">Totale</h3>
-      <div id="totale" class="text-4xl font-bold text-green-600">0.00 €</div>
-    </div>
-    <button onclick="confermaOrdine()" 
-            class="w-full bg-green-600 hover:bg-green-700 text-white py-6 rounded-3xl text-2xl font-bold">
-      ✅ CONFERMA ORDINE
-    </button>
   </div>
 
   <script>
-    const menuData = {
+    // ==================== INVENTARIO INIZIALE ====================
+    let giacenza = {
+      "Arancini": 50,
+      "Olive Ascolane": 40,
+      "Patatine Fritte": 60,
+      "Hot Dog": 30,
+      "Panino Salame": 35,
+      "Acqua Naturale": 80,
+      "Acqua Frizzante": 70,
+      "Coca Cola": 60,
+      "Aranciata": 50,
+      "Birra": 40,
+      "Gelato Cioccolato": 45,
+      "Gelato Nocciola": 45,
+      "Gelato Fragola": 45,
+      "Coppa Mista": 30,
+      "Torta della Nonna": 25
+    };
+
+    const menuData = { /* stesso menu di prima */ 
       categorie: [
         { nome: "Cibo", piatti: [
           { nome: "Arancini", prezzo: 3.5 },
@@ -64,70 +115,122 @@
       ]
     };
 
-    let selezionati = [];
+    let ordineCorrente = [];
+
+    function caricaTutto() {
+      caricaGiacenza();
+      caricaMenu();
+      caricaCronologia();
+    }
+
+    function caricaGiacenza() {
+      let html = '';
+      Object.keys(giacenza).forEach(item => {
+        html += `<div class="flex justify-between"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
+      });
+      document.getElementById('giacenza').innerHTML = html;
+    }
 
     function caricaMenu() {
       let html = '';
       menuData.categorie.forEach(cat => {
-        html += `<div class="col-span-full"><h2 class="text-2xl font-bold text-amber-800 mt-8 mb-4">${cat.nome}</h2></div>`;
-        
+        html += `<h2 class="text-2xl font-bold text-amber-800 mt-8 mb-4">${cat.nome}</h2>`;
         cat.piatti.forEach(piatto => {
           html += `
-            <div class="bg-white p-5 rounded-3xl shadow flex justify-between items-center">
-              <div>
+            <div class="bg-white p-4 rounded-3xl shadow flex items-center gap-4">
+              <input type="checkbox" onchange="togglePiatto(this, '${piatto.nome}', ${piatto.prezzo})" class="w-6 h-6 accent-amber-600">
+              <div class="flex-1">
                 <p class="font-semibold">${piatto.nome}</p>
                 <p class="text-green-600 font-bold">${piatto.prezzo.toFixed(2)} €</p>
               </div>
-              <input type="checkbox" onchange="toggleItem(this, '${piatto.nome}', ${piatto.prezzo})" 
-                     class="w-8 h-8 accent-amber-600">
+              ${['Bevande','Dolci e Gelati'].includes(cat.nome) ? 
+                `<input type="checkbox" class="consegnata w-6 h-6 accent-green-600" onchange="aggiornaOrdineCorrente()"> Consegnata` : ''}
             </div>`;
         });
       });
       document.getElementById('menu-grid').innerHTML = html;
     }
 
-    function toggleItem(checkbox, nome, prezzo) {
-      if (checkbox.checked) {
-        selezionati.push({nome, prezzo});
+    function togglePiatto(cb, nome, prezzo) {
+      if (cb.checked) {
+        ordineCorrente.push({nome, prezzo, consegnata: false});
       } else {
-        selezionati = selezionati.filter(item => item.nome !== nome);
+        ordineCorrente = ordineCorrente.filter(item => item.nome !== nome);
       }
-      aggiornaTotale();
+      aggiornaOrdineCorrente();
     }
 
-    function aggiornaTotale() {
-      const totale = selezionati.reduce((sum, item) => sum + item.prezzo, 0);
-      document.getElementById('totale').textContent = totale.toFixed(2) + " €";
+    function aggiornaOrdineCorrente() {
+      let html = '';
+      let totale = 0;
+      ordineCorrente.forEach(item => {
+        totale += item.prezzo;
+        html += `<div class="flex justify-between py-1"><span>${item.nome}</span><span>${item.prezzo.toFixed(2)} €</span></div>`;
+      });
+      document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
+      document.getElementById('totale-ordine').textContent = totale.toFixed(2) + " €";
+      calcolaResto();
+    }
+
+    function calcolaResto() {
+      const totale = ordineCorrente.reduce((sum, i) => sum + i.prezzo, 0);
+      const consegnato = parseFloat(document.getElementById('importo-consegnato').value) || 0;
+      const resto = Math.max(0, consegnato - totale);
+      document.getElementById('resto').textContent = resto.toFixed(2) + " €";
     }
 
     function confermaOrdine() {
+      if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
+
       const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
-      if (selezionati.length === 0) return alert("Seleziona almeno un prodotto!");
+      const totale = ordineCorrente.reduce((sum, i) => sum + i.prezzo, 0);
 
       let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      const numeroOrdine = ordini.length + 1;
+      const numero = ordini.length + 1;
 
       const ordine = {
-        numero: numeroOrdine,
+        numero: numero,
         data: new Date().toLocaleString('it-IT'),
         cliente: nome,
-        items: selezionati.map(i => i.nome),
-        totale: selezionati.reduce((sum, i) => sum + i.prezzo, 0)
+        items: ordineCorrente.map(i => i.nome),
+        totale: totale,
+        orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})
       };
+
+      // Scalare giacenza
+      ordineCorrente.forEach(item => {
+        if (giacenza[item.nome] !== undefined) giacenza[item.nome]--;
+      });
 
       ordini.push(ordine);
       localStorage.setItem('ordiniFesta', JSON.stringify(ordini));
 
-      alert(`✅ ORDINE #${numeroOrdine.toString().padStart(3, '0')} REGISTRATO!\n\nCliente: ${nome}\nTotale: ${ordine.totale.toFixed(2)} €\nPagamento: Contanti`);
+      alert(`✅ Ordine #${numero.toString().padStart(3,'0')} registrato!`);
 
       // Reset
-      selezionati = [];
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-      aggiornaTotale();
+      ordineCorrente = [];
       document.getElementById('nome-cliente').value = '';
+      document.getElementById('importo-consegnato').value = 0;
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+      caricaTutto();
     }
 
-    caricaMenu();
+    function caricaCronologia() {
+      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+      let html = '';
+      ordini.slice().reverse().forEach(o => {
+        html += `
+          <div class="border-l-4 border-amber-500 pl-3">
+            <div class="font-bold">#${o.numero.toString().padStart(3,'0')} - ${o.cliente}</div>
+            <div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div>
+          </div>`;
+      });
+      document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
+    }
+
+    // Avvio
+    caricaTutto();
   </script>
 </body>
 </html>
