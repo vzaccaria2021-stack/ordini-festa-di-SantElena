@@ -3,20 +3,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Test Ordini</title>
+  <title>Ordini - Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
-<body class="p-8">
-  <h1 class="text-3xl font-bold mb-8">Test Firebase</h1>
-  
-  <button onclick="testSalva()" 
-          class="bg-green-600 text-white px-8 py-4 rounded-2xl text-xl">
-    TEST: Salva Ordine
-  </button>
+<body class="bg-orange-50">
+  <div class="max-w-7xl mx-auto p-4">
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-4xl font-bold text-amber-900">🎉 Festa di Sant'Elena</h1>
+        <p class="text-amber-700">Menu del 09-06-2026</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="bg-white rounded-3xl shadow px-8 py-4 text-center">
+          <p class="text-sm text-gray-500">Totale Serata</p>
+          <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
+        </div>
+        <button onclick="resetCompleto()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
+          <i class="fas fa-trash"></i> Reset Tutto
+        </button>
+      </div>
+    </div>
 
-  <div id="status" class="mt-8 text-lg"></div>
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-3 bg-white rounded-3xl shadow p-5">
+        <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
+        <div id="giacenza" class="space-y-3 text-sm"></div>
+      </div>
+
+      <div class="col-span-6">
+        <div class="mb-6">
+          <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
+        </div>
+        <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
+      </div>
+
+      <div class="col-span-3 space-y-6">
+        <div class="bg-white rounded-3xl shadow p-5">
+          <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
+          <div id="ordine-corrente" class="min-h-[180px] text-sm"></div>
+
+          <div class="mt-6 space-y-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Importo Consegnato (€)</label>
+              <input type="number" id="importo-consegnato" step="0.5" value="0" class="w-full p-3 rounded-2xl border-2 border-green-300 text-2xl text-center font-bold" oninput="calcolaResto()">
+            </div>
+            <div class="flex justify-between text-lg font-bold">
+              <span>Totale Ordine:</span>
+              <span id="totale-ordine" class="text-green-600">0.00 €</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold text-red-600">
+              <span>Resto da dare:</span>
+              <span id="resto">0.00 €</span>
+            </div>
+          </div>
+
+          <button onclick="confermaOrdine()" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
+            ✅ CONFERMA ORDINE
+          </button>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow p-5">
+          <h3 class="font-bold mb-4">📋 Cronologia Ordini</h3>
+          <div id="cronologia" class="max-h-[380px] overflow-auto space-y-3 text-sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const firebaseConfig = {
@@ -32,26 +87,56 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function testSalva() {
-      const testOrdine = {
-        numero: Date.now(),
-        cliente: "Test Utente",
-        totale: 15.5,
-        data: new Date().toLocaleString('it-IT'),
-        timestamp: Date.now()
-      };
+    let giacenza = {
+      "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
+      "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
+      "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
+    };
 
-      db.ref('ordini').push(testOrdine)
-        .then(() => {
-          document.getElementById('status').innerHTML = 
-            `<span class="text-green-600">✅ Ordine salvato correttamente!</span>`;
-        })
-        .catch(err => {
-          document.getElementById('status').innerHTML = 
-            `<span class="text-red-600">❌ Errore: ${err.message}</span>`;
-          console.error(err);
-        });
+    let ordineCorrente = [];
+
+    const menuData = {
+      categorie: [
+        { nome: "Cibo", piatti: [{ nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 }, { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 }, { nome: "Panino Salame", prezzo: 4 }]},
+        { nome: "Bevande", piatti: [{ nome: "Acqua Naturale", prezzo: 1.5 }, { nome: "Acqua Frizzante", prezzo: 1.5 }, { nome: "Coca Cola", prezzo: 2.5 }, { nome: "Aranciata", prezzo: 2.5 }, { nome: "Birra", prezzo: 3.5 }]},
+        { nome: "Dolci e Gelati", piatti: [{ nome: "Gelato Cioccolato", prezzo: 2.5 }, { nome: "Gelato Nocciola", prezzo: 2.5 }, { nome: "Gelato Fragola", prezzo: 2.5 }, { nome: "Coppa Mista", prezzo: 3.5 }, { nome: "Torta della Nonna", prezzo: 3.5 }]}
+      ]
+    };
+
+    function caricaTutto() {
+      caricaGiacenza();
+      caricaMenu();
+      caricaCronologia();
+      aggiornaTotaleSerata();
     }
+
+    // ... (le altre funzioni sono le stesse di prima)
+
+    function confermaOrdine() {
+      if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
+
+      const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
+      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
+
+      db.ref('ordini').push({
+        numero: Date.now(),
+        data: new Date().toLocaleString('it-IT'),
+        cliente: nome,
+        items: ordineCorrente.map(i => `${i.nome} ×${i.quantita}`),
+        totale: totale,
+        orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
+        timestamp: Date.now()
+      }).then(() => {
+        alert(`✅ Ordine registrato con successo!`);
+        ordineCorrente = [];
+        document.getElementById('nome-cliente').value = '';
+        document.getElementById('importo-consegnato').value = 0;
+        caricaTutto();
+      }).catch(err => alert("Errore: " + err.message));
+    }
+
+    // Carica i dati iniziali
+    caricaTutto();
   </script>
 </body>
 </html>
