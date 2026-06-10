@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <!-- Barra di ricerca -->
+    <!-- Ricerca -->
     <div class="mb-8">
       <div class="relative">
         <input type="text" id="search-input" 
@@ -74,11 +74,14 @@
         let itemsHtml = ordine.items.map(item => {
           const text = typeof item === 'string' ? item : '';
           const isConsegnata = text.toLowerCase().includes('consegnata');
-          
           return isConsegnata 
             ? `<span class="line-through text-gray-500 text-2xl">${text}</span>` 
             : `<span class="text-2xl">${text}</span>`;
         }).join('<br>');
+
+        const orarioConsegna = ordine.orarioConsegna 
+          ? `<p class="text-green-600 mt-3 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` 
+          : '';
 
         html += `
           <div class="border ${isRitirato ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-3xl p-10">
@@ -95,6 +98,7 @@
             <div class="mb-8">
               <p class="font-bold text-4xl mb-6">${ordine.cliente}</p>
               <div class="text-gray-800 leading-relaxed">${itemsHtml}</div>
+              ${orarioConsegna}
             </div>
 
             <button onclick="toggleRitirato(${index})" 
@@ -121,7 +125,7 @@
       caricaOrdini(document.getElementById('search-input').value);
     }
 
-    // Ricerca live + aggiornamento automatico
+    // Ricerca e aggiornamento automatico
     document.getElementById('search-input').addEventListener('input', (e) => {
       caricaOrdini(e.target.value);
     });
