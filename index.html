@@ -6,7 +6,6 @@
   <title>Ordini - Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
@@ -22,31 +21,25 @@
           <p class="text-sm text-gray-500">Totale Serata</p>
           <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
         </div>
-        <button onclick="resetCompleto()" 
-                class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
+        <button onclick="resetCompleto()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
           <i class="fas fa-trash"></i> Reset Tutto
         </button>
       </div>
     </div>
 
     <div class="grid grid-cols-12 gap-6">
-      <!-- Giacenza -->
       <div class="col-span-3 bg-white rounded-3xl shadow p-5">
         <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
         <div id="giacenza" class="space-y-3 text-sm"></div>
       </div>
 
-      <!-- Menu -->
       <div class="col-span-6">
         <div class="mb-6">
-          <input type="text" id="nome-cliente" 
-                 class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" 
-                 placeholder="Nome cliente o tavolo">
+          <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
         </div>
         <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
       </div>
 
-      <!-- Destra -->
       <div class="col-span-3 space-y-6">
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
@@ -55,9 +48,7 @@
           <div class="mt-6 space-y-3">
             <div>
               <label class="block text-sm text-gray-600 mb-1">Importo Consegnato (€)</label>
-              <input type="number" id="importo-consegnato" step="0.5" value="0" 
-                     class="w-full p-3 rounded-2xl border-2 border-green-300 text-2xl text-center font-bold"
-                     oninput="calcolaResto()">
+              <input type="number" id="importo-consegnato" step="0.5" value="0" class="w-full p-3 rounded-2xl border-2 border-green-300 text-2xl text-center font-bold" oninput="calcolaResto()">
             </div>
             <div class="flex justify-between text-lg font-bold">
               <span>Totale Ordine:</span>
@@ -69,8 +60,7 @@
             </div>
           </div>
 
-          <button onclick="confermaOrdine()" 
-                  class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
+          <button onclick="confermaOrdine()" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
             ✅ CONFERMA ORDINE
           </button>
         </div>
@@ -107,21 +97,9 @@
 
     const menuData = {
       categorie: [
-        { nome: "Cibo", piatti: [
-          { nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 },
-          { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 },
-          { nome: "Panino Salame", prezzo: 4 }
-        ]},
-        { nome: "Bevande", piatti: [
-          { nome: "Acqua Naturale", prezzo: 1.5 }, { nome: "Acqua Frizzante", prezzo: 1.5 },
-          { nome: "Coca Cola", prezzo: 2.5 }, { nome: "Aranciata", prezzo: 2.5 },
-          { nome: "Birra", prezzo: 3.5 }
-        ]},
-        { nome: "Dolci e Gelati", piatti: [
-          { nome: "Gelato Cioccolato", prezzo: 2.5 }, { nome: "Gelato Nocciola", prezzo: 2.5 },
-          { nome: "Gelato Fragola", prezzo: 2.5 }, { nome: "Coppa Mista", prezzo: 3.5 },
-          { nome: "Torta della Nonna", prezzo: 3.5 }
-        ]}
+        { nome: "Cibo", piatti: [{ nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 }, { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 }, { nome: "Panino Salame", prezzo: 4 }]},
+        { nome: "Bevande", piatti: [{ nome: "Acqua Naturale", prezzo: 1.5 }, { nome: "Acqua Frizzante", prezzo: 1.5 }, { nome: "Coca Cola", prezzo: 2.5 }, { nome: "Aranciata", prezzo: 2.5 }, { nome: "Birra", prezzo: 3.5 }]},
+        { nome: "Dolci e Gelati", piatti: [{ nome: "Gelato Cioccolato", prezzo: 2.5 }, { nome: "Gelato Nocciola", prezzo: 2.5 }, { nome: "Gelato Fragola", prezzo: 2.5 }, { nome: "Coppa Mista", prezzo: 3.5 }, { nome: "Torta della Nonna", prezzo: 3.5 }]}
       ]
     };
 
@@ -156,12 +134,7 @@
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-2xl font-bold text-2xl">-</button>
                 <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-12 text-center font-bold text-3xl">0</span>
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-10 h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-2xl">+</button>
-                ${isBevanda ? `
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}">
-                    <span class="text-base font-medium text-green-700">Consegnata</span>
-                  </label>
-                ` : ''}
+                ${isBevanda ? `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}"><span class="text-base font-medium text-green-700">Consegnata</span></label>` : ''}
               </div>
             </div>`;
         });
@@ -190,7 +163,6 @@
       });
       document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
       document.getElementById('totale-ordine').textContent = totale.toFixed(2) + " €";
-      calcolaResto();
     }
 
     function calcolaResto() {
@@ -211,6 +183,7 @@
       const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
       const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
 
+      // Salvataggio su Firebase
       db.ref('ordini').push({
         numero: Date.now(),
         data: new Date().toLocaleString('it-IT'),
@@ -225,6 +198,9 @@
         document.getElementById('nome-cliente').value = '';
         document.getElementById('importo-consegnato').value = 0;
         caricaTutto();
+      }).catch(err => {
+        console.error(err);
+        alert("Errore durante il salvataggio: " + err.message);
       });
     }
 
@@ -249,15 +225,13 @@
     }
 
     function resetCompleto() {
-      if (!confirm("⚠️ ATTENZIONE!\nVuoi resettare tutto?")) return;
-      if (!confirm("❗ CONFERMA 2/3")) return;
-      if (!confirm("❗ CONFERMA FINALE")) return;
-
-      db.ref('ordini').remove();
-      giacenza = {...giacenzaIniziale};
-      ordineCorrente = [];
-      alert("✅ Tutto resettato!");
-      caricaTutto();
+      if (confirm("⚠️ Resettare tutto?") && confirm("Conferma 2/3") && confirm("Conferma finale")) {
+        db.ref('ordini').remove();
+        giacenza = {...giacenzaIniziale};
+        ordineCorrente = [];
+        alert("✅ Tutto resettato!");
+        caricaTutto();
+      }
     }
 
     // Avvio
