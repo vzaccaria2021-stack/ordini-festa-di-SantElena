@@ -28,18 +28,14 @@
       </div>
     </div>
 
-    <!-- Ricerca + Reset -->
-    <div class="flex gap-4 mb-8">
-      <div class="flex-1 relative">
+    <!-- Barra di ricerca -->
+    <div class="mb-8">
+      <div class="relative">
         <input type="text" id="search-input" 
                class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
                placeholder="Cerca per numero ticket o nome cliente...">
         <i class="fas fa-search absolute left-7 top-7 text-gray-400 text-3xl"></i>
       </div>
-      <button onclick="resettaTuttiOrdini()" 
-              class="bg-red-600 hover:bg-red-700 text-white px-12 py-6 rounded-3xl font-medium text-xl flex items-center gap-3">
-        <i class="fas fa-trash"></i> Reset Tutti
-      </button>
     </div>
 
     <div class="bg-white rounded-3xl shadow p-8">
@@ -125,16 +121,7 @@
       caricaOrdini(document.getElementById('search-input').value);
     }
 
-    function resettaTuttiOrdini() {
-      if (confirm("⚠️ Vuoi cancellare TUTTI gli ordini?") &&
-          confirm("❗ CONFERMA 2/3") &&
-          confirm("❗ CONFERMA FINALE")) {
-        localStorage.removeItem('ordiniFesta');
-        caricaOrdini();
-      }
-    }
-
-    // Ricerca e aggiornamento automatico
+    // Ricerca live + aggiornamento automatico
     document.getElementById('search-input').addEventListener('input', (e) => {
       caricaOrdini(e.target.value);
     });
