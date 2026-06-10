@@ -76,9 +76,8 @@
         const isRitirato = ordine.ritirato || false;
         
         let itemsHtml = ordine.items.map(item => {
-          const text = typeof item === 'string' ? item : item.nome || item;
-          const isConsegnata = text.toLowerCase().includes('consegnata') || 
-                              (typeof item === 'object' && item.consegnata);
+          const text = typeof item === 'string' ? item : '';
+          const isConsegnata = text.toLowerCase().includes('consegnata');
           
           return isConsegnata 
             ? `<span class="line-through text-gray-500 text-2xl">${text}</span>` 
@@ -135,7 +134,10 @@
       }
     }
 
-    document.getElementById('search-input').addEventListener('input', (e) => caricaOrdini(e.target.value));
+    // Ricerca e aggiornamento automatico
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      caricaOrdini(e.target.value);
+    });
     setInterval(() => caricaOrdini(document.getElementById('search-input').value), 5000);
     caricaOrdini();
   </script>
