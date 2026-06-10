@@ -14,25 +14,23 @@
 
     <div class="grid grid-cols-12 gap-6">
 
-      <!-- COLONNA SINISTRA: Giacenza Magazzino -->
+      <!-- COLONNA SINISTRA: Giacenza -->
       <div class="col-span-3 bg-white rounded-3xl shadow p-5">
         <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
         <div id="giacenza" class="space-y-3 text-sm"></div>
       </div>
 
-      <!-- CENTRO: Menu -->
+      <!-- CENTRO: Menu con quantità -->
       <div class="col-span-6">
         <div class="mb-6">
           <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
         </div>
 
-        <div id="menu-grid" class="grid grid-cols-1 gap-4"></div>
+        <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
       </div>
 
-      <!-- COLONNA DESTRA: Cronologia + Totale -->
+      <!-- COLONNA DESTRA: Riepilogo + Cronologia -->
       <div class="col-span-3 space-y-6">
-
-        <!-- Riepilogo Ordine -->
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
           <div id="ordine-corrente" class="min-h-[200px] text-sm"></div>
@@ -45,11 +43,11 @@
                      oninput="calcolaResto()">
             </div>
             <div class="flex justify-between text-lg font-bold">
-              <span>Totale Ordine:</span>
+              <span>Totale:</span>
               <span id="totale-ordine" class="text-green-600">0.00 €</span>
             </div>
             <div class="flex justify-between text-lg font-bold text-red-600">
-              <span>Resto da dare:</span>
+              <span>Resto:</span>
               <span id="resto">0.00 €</span>
             </div>
           </div>
@@ -60,36 +58,22 @@
           </button>
         </div>
 
-        <!-- Cronologia -->
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">📋 Cronologia Ordini</h3>
-          <div id="cronologia" class="max-h-[500px] overflow-auto space-y-3 text-sm"></div>
+          <div id="cronologia" class="max-h-[450px] overflow-auto space-y-3 text-sm"></div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ==================== INVENTARIO INIZIALE ====================
     let giacenza = {
-      "Arancini": 50,
-      "Olive Ascolane": 40,
-      "Patatine Fritte": 60,
-      "Hot Dog": 30,
-      "Panino Salame": 35,
-      "Acqua Naturale": 80,
-      "Acqua Frizzante": 70,
-      "Coca Cola": 60,
-      "Aranciata": 50,
-      "Birra": 40,
-      "Gelato Cioccolato": 45,
-      "Gelato Nocciola": 45,
-      "Gelato Fragola": 45,
-      "Coppa Mista": 30,
-      "Torta della Nonna": 25
+      "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
+      "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
+      "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
     };
 
-    const menuData = { /* stesso menu di prima */ 
+    const menuData = {
       categorie: [
         { nome: "Cibo", piatti: [
           { nome: "Arancini", prezzo: 3.5 },
@@ -115,7 +99,7 @@
       ]
     };
 
-    let ordineCorrente = [];
+    let ordineCorrente = []; // {nome, prezzo, quantita}
 
     function caricaTutto() {
       caricaGiacenza();
@@ -126,7 +110,7 @@
     function caricaGiacenza() {
       let html = '';
       Object.keys(giacenza).forEach(item => {
-        html += `<div class="flex justify-between"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
+        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
       });
       document.getElementById('giacenza').innerHTML = html;
     }
@@ -134,46 +118,62 @@
     function caricaMenu() {
       let html = '';
       menuData.categorie.forEach(cat => {
-        html += `<h2 class="text-2xl font-bold text-amber-800 mt-8 mb-4">${cat.nome}</h2>`;
+        html += `<h2 class="col-span-2 text-2xl font-bold text-amber-800 mt-8 mb-4">${cat.nome}</h2>`;
+        
         cat.piatti.forEach(piatto => {
           html += `
-            <div class="bg-white p-4 rounded-3xl shadow flex items-center gap-4">
-              <input type="checkbox" onchange="togglePiatto(this, '${piatto.nome}', ${piatto.prezzo})" class="w-6 h-6 accent-amber-600">
+            <div class="bg-white p-4 rounded-3xl shadow flex items-center gap-3">
               <div class="flex-1">
                 <p class="font-semibold">${piatto.nome}</p>
                 <p class="text-green-600 font-bold">${piatto.prezzo.toFixed(2)} €</p>
               </div>
-              ${['Bevande','Dolci e Gelati'].includes(cat.nome) ? 
-                `<input type="checkbox" class="consegnata w-6 h-6 accent-green-600" onchange="aggiornaOrdineCorrente()"> Consegnata` : ''}
+              <div class="flex items-center gap-2">
+                <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-xl font-bold">-</button>
+                <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-8 text-center font-bold">0</span>
+                <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-8 h-8 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold">+</button>
+              </div>
             </div>`;
         });
       });
       document.getElementById('menu-grid').innerHTML = html;
     }
 
-    function togglePiatto(cb, nome, prezzo) {
-      if (cb.checked) {
-        ordineCorrente.push({nome, prezzo, consegnata: false});
-      } else {
-        ordineCorrente = ordineCorrente.filter(item => item.nome !== nome);
+    function cambiaQuantita(nome, prezzo, delta) {
+      let item = ordineCorrente.find(i => i.nome === nome);
+      if (!item) {
+        item = {nome, prezzo, quantita: 0};
+        ordineCorrente.push(item);
       }
+      
+      item.quantita = Math.max(0, item.quantita + delta);
+      
+      if (item.quantita === 0) {
+        ordineCorrente = ordineCorrente.filter(i => i.nome !== nome);
+      }
+
+      document.getElementById(`qty-${nome.replace(/\s+/g,'')}`).textContent = item.quantita || 0;
       aggiornaOrdineCorrente();
     }
 
     function aggiornaOrdineCorrente() {
       let html = '';
       let totale = 0;
+      
       ordineCorrente.forEach(item => {
-        totale += item.prezzo;
-        html += `<div class="flex justify-between py-1"><span>${item.nome}</span><span>${item.prezzo.toFixed(2)} €</span></div>`;
+        totale += item.prezzo * item.quantita;
+        html += `<div class="flex justify-between py-1">
+          <span>${item.nome} ×${item.quantita}</span>
+          <span>${(item.prezzo * item.quantita).toFixed(2)} €</span>
+        </div>`;
       });
+
       document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
       document.getElementById('totale-ordine').textContent = totale.toFixed(2) + " €";
       calcolaResto();
     }
 
     function calcolaResto() {
-      const totale = ordineCorrente.reduce((sum, i) => sum + i.prezzo, 0);
+      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
       const consegnato = parseFloat(document.getElementById('importo-consegnato').value) || 0;
       const resto = Math.max(0, consegnato - totale);
       document.getElementById('resto').textContent = resto.toFixed(2) + " €";
@@ -183,23 +183,23 @@
       if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
 
       const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
-      const totale = ordineCorrente.reduce((sum, i) => sum + i.prezzo, 0);
+      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
 
       let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
       const numero = ordini.length + 1;
 
       const ordine = {
-        numero: numero,
+        numero,
         data: new Date().toLocaleString('it-IT'),
         cliente: nome,
-        items: ordineCorrente.map(i => i.nome),
-        totale: totale,
+        items: ordineCorrente.map(i => `${i.nome} ×${i.quantita}`),
+        totale,
         orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})
       };
 
       // Scalare giacenza
       ordineCorrente.forEach(item => {
-        if (giacenza[item.nome] !== undefined) giacenza[item.nome]--;
+        if (giacenza[item.nome] !== undefined) giacenza[item.nome] -= item.quantita;
       });
 
       ordini.push(ordine);
@@ -211,8 +211,6 @@
       ordineCorrente = [];
       document.getElementById('nome-cliente').value = '';
       document.getElementById('importo-consegnato').value = 0;
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-
       caricaTutto();
     }
 
@@ -221,15 +219,14 @@
       let html = '';
       ordini.slice().reverse().forEach(o => {
         html += `
-          <div class="border-l-4 border-amber-500 pl-3">
+          <div class="border-l-4 border-amber-500 pl-3 py-2">
             <div class="font-bold">#${o.numero.toString().padStart(3,'0')} - ${o.cliente}</div>
             <div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div>
           </div>`;
       });
-      document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
+      document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine</p>';
     }
 
-    // Avvio
     caricaTutto();
   </script>
 </body>
