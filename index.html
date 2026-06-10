@@ -6,6 +6,9 @@
   <title>Ordini - Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body class="bg-orange-50">
   <div class="max-w-7xl mx-auto p-4">
@@ -26,11 +29,13 @@
     </div>
 
     <div class="grid grid-cols-12 gap-6">
+      <!-- Giacenza -->
       <div class="col-span-3 bg-white rounded-3xl shadow p-5">
         <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
         <div id="giacenza" class="space-y-3 text-sm"></div>
       </div>
 
+      <!-- Menu -->
       <div class="col-span-6">
         <div class="mb-6">
           <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
@@ -38,6 +43,7 @@
         <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
       </div>
 
+      <!-- Destra -->
       <div class="col-span-3 space-y-6">
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
@@ -72,6 +78,19 @@
   </div>
 
   <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDX2e05Z2LGbm3I1bUVpXG7wu4WgKbA78",
+      authDomain: "festa-sant-elena.firebaseapp.com",
+      databaseURL: "https://festa-sant-elena-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "festa-sant-elena",
+      storageBucket: "festa-sant-elena.firebasestorage.app",
+      messagingSenderId: "350486542022",
+      appId: "1:350486542022:web:b56a29e34ae8f6f6ec49c7"
+    };
+
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     let giacenzaIniziale = {
       "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
       "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
@@ -83,7 +102,7 @@
 
     const menuData = {
       categorie: [
-        { nome: "Risorazione", piatti: [{ nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 }, { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 }, { nome: "Panino Salame", prezzo: 4 }]},
+        { nome: "Cibo", piatti: [{ nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 }, { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 }, { nome: "Panino Salame", prezzo: 4 }]},
         { nome: "Bevande", piatti: [{ nome: "Acqua Naturale", prezzo: 1.5 }, { nome: "Acqua Frizzante", prezzo: 1.5 }, { nome: "Coca Cola", prezzo: 2.5 }, { nome: "Aranciata", prezzo: 2.5 }, { nome: "Birra", prezzo: 3.5 }]},
         { nome: "Dolci e Gelati", piatti: [{ nome: "Gelato Cioccolato", prezzo: 2.5 }, { nome: "Gelato Nocciola", prezzo: 2.5 }, { nome: "Gelato Fragola", prezzo: 2.5 }, { nome: "Coppa Mista", prezzo: 3.5 }, { nome: "Torta della Nonna", prezzo: 3.5 }]}
       ]
@@ -120,7 +139,6 @@
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-2xl font-bold text-2xl">-</button>
                 <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-12 text-center font-bold text-3xl">0</span>
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-10 h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-2xl">+</button>
-                
                 ${isBevanda ? `
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}">
@@ -167,7 +185,6 @@
     function confermaOrdine() {
       if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
 
-      // Recupera stato "Consegnata"
       document.querySelectorAll('.consegnata-check').forEach(check => {
         const nome = check.dataset.name;
         let item = ordineCorrente.find(i => i.nome === nome);
@@ -177,26 +194,21 @@
       const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
       const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
 
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      const numero = ordini.length + 1;
-
-      const ordine = {
-        numero,
+      const ordineRef = db.ref('ordini').push();
+      ordineRef.set({
+        numero: Date.now(),
         data: new Date().toLocaleString('it-IT'),
         cliente: nome,
         items: ordineCorrente.map(i => i.consegnata ? `${i.nome} ×${i.quantita} (Consegnata)` : `${i.nome} ×${i.quantita}`),
-        totale,
+        totale: totale,
         orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})
-      };
+      });
 
       ordineCorrente.forEach(item => {
         if (giacenza[item.nome] !== undefined) giacenza[item.nome] -= item.quantita;
       });
 
-      ordini.push(ordine);
-      localStorage.setItem('ordiniFesta', JSON.stringify(ordini));
-
-      alert(`✅ Ordine #${numero.toString().padStart(3,'0')} registrato!`);
+      alert(`✅ Ordine registrato!`);
 
       ordineCorrente = [];
       document.getElementById('nome-cliente').value = '';
@@ -205,26 +217,34 @@
     }
 
     function caricaCronologia() {
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      let html = '';
-      ordini.slice().reverse().forEach(o => {
-        html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero.toString().padStart(3,'0')} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
+      db.ref('ordini').on('value', snapshot => {
+        let ordini = [];
+        snapshot.forEach(child => ordini.push(child.val()));
+        let html = '';
+        ordini.slice().reverse().forEach(o => {
+          html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero ? o.numero.toString().slice(-4) : ''} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
+        });
+        document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
+        aggiornaTotaleSerata();
       });
-      document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
     }
 
     function aggiornaTotaleSerata() {
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      const totale = ordini.reduce((sum, o) => sum + (o.totale || 0), 0);
-      document.getElementById('totale-serata').textContent = totale.toFixed(2) + " €";
+      db.ref('ordini').once('value', snapshot => {
+        let totale = 0;
+        snapshot.forEach(child => {
+          totale += child.val().totale || 0;
+        });
+        document.getElementById('totale-serata').textContent = totale.toFixed(2) + " €";
+      });
     }
 
     function resetCompleto() {
-      if (!confirm("⚠️ ATTENZIONE! Resettare tutto?")) return;
+      if (!confirm("⚠️ ATTENZIONE!\nVuoi davvero resettare TUTTO?")) return;
       if (!confirm("❗ CONFERMA 2/3")) return;
       if (!confirm("❗ CONFERMA FINALE")) return;
 
-      localStorage.removeItem('ordiniFesta');
+      db.ref('ordini').remove();
       giacenza = {...giacenzaIniziale};
       ordineCorrente = [];
       document.getElementById('nome-cliente').value = '';
