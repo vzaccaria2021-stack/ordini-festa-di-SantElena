@@ -9,20 +9,20 @@
 </head>
 <body class="bg-orange-50">
   <div class="max-w-7xl mx-auto p-4">
+    <!-- Header con Totale Serata e Report -->
     <div class="flex justify-between items-center mb-6">
       <div>
         <h1 class="text-4xl font-bold text-amber-900">🎉 Festa di Sant'Elena</h1>
         <p class="text-amber-700">Menu del 09-06-2026</p>
       </div>
       
-      <!-- Totale Serata + Pulsante Report -->
       <div class="flex items-center gap-4">
         <div class="bg-white rounded-3xl shadow px-8 py-4 text-center">
           <p class="text-sm text-gray-500">Totale Serata</p>
           <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
         </div>
         <button onclick="generaReport()" 
-                class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2 shadow-lg">
+                class="bg-blue-600 hover:bg-blue-700 text-white px-7 py-4 rounded-3xl font-medium flex items-center gap-2 shadow-lg">
           <i class="fas fa-chart-bar"></i> 
           📊 Report Serata
         </button>
@@ -31,7 +31,7 @@
 
     <div class="grid grid-cols-12 gap-6">
 
-      <!-- COLONNA SINISTRA: Giacenza -->
+      <!-- SINISTRA: Giacenza Magazzino -->
       <div class="col-span-3 bg-white rounded-3xl shadow p-5">
         <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
         <div id="giacenza" class="space-y-3 text-sm"></div>
@@ -45,7 +45,7 @@
         <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
       </div>
 
-      <!-- COLONNA DESTRA -->
+      <!-- DESTRA: Ordine Corrente + Cronologia -->
       <div class="col-span-3 space-y-6">
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
@@ -85,9 +85,9 @@
   <!-- Modal Report -->
   <div id="modal-report" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-3xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto">
-      <div class="p-6 border-b">
+      <div class="p-6 border-b flex justify-between items-center">
         <h2 class="text-3xl font-bold text-amber-900">📊 Report della Serata</h2>
-        <p id="report-data" class="text-gray-500"></p>
+        <button onclick="chiudiReport()" class="text-3xl text-gray-400 hover:text-gray-600">×</button>
       </div>
       <div class="p-6" id="contenuto-report"></div>
       <div class="p-6 border-t flex gap-3">
@@ -98,20 +98,154 @@
   </div>
 
   <script>
-    // ... (tutto il codice precedente rimane uguale fino a caricaTutto())
-
-    let giacenza = { /* stesso di prima */ 
+    let giacenza = {
       "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
       "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
       "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
     };
 
-    // ... (mantieni tutto il codice delle funzioni precedenti: caricaGiacenza, caricaMenu, cambiaQuantita, aggiornaOrdineCorrente, calcolaResto, confermaOrdine, caricaCronologia ...)
+    const menuData = {
+      categorie: [
+        { nome: "Cibo", piatti: [
+          { nome: "Arancini", prezzo: 3.5 },
+          { nome: "Olive Ascolane", prezzo: 4 },
+          { nome: "Patatine Fritte", prezzo: 2.5 },
+          { nome: "Hot Dog", prezzo: 3.5 },
+          { nome: "Panino Salame", prezzo: 4 }
+        ]},
+        { nome: "Bevande", piatti: [
+          { nome: "Acqua Naturale", prezzo: 1.5 },
+          { nome: "Acqua Frizzante", prezzo: 1.5 },
+          { nome: "Coca Cola", prezzo: 2.5 },
+          { nome: "Aranciata", prezzo: 2.5 },
+          { nome: "Birra", prezzo: 3.5 }
+        ]},
+        { nome: "Dolci e Gelati", piatti: [
+          { nome: "Gelato Cioccolato", prezzo: 2.5 },
+          { nome: "Gelato Nocciola", prezzo: 2.5 },
+          { nome: "Gelato Fragola", prezzo: 2.5 },
+          { nome: "Coppa Mista", prezzo: 3.5 },
+          { nome: "Torta della Nonna", prezzo: 3.5 }
+        ]}
+      ]
+    };
+
+    let ordineCorrente = [];
+
+    function caricaTutto() {
+      caricaGiacenza();
+      caricaMenu();
+      caricaCronologia();
+      aggiornaTotaleSerata();
+    }
+
+    function caricaGiacenza() {
+      let html = '';
+      Object.keys(giacenza).forEach(item => {
+        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
+      });
+      document.getElementById('giacenza').innerHTML = html;
+    }
+
+    function caricaMenu() {
+      let html = '';
+      menuData.categorie.forEach(cat => {
+        html += `<h2 class="col-span-2 text-2xl font-bold text-amber-800 mt-8 mb-4">${cat.nome}</h2>`;
+        cat.piatti.forEach(piatto => {
+          html += `
+            <div class="bg-white p-4 rounded-3xl shadow flex items-center gap-3">
+              <div class="flex-1">
+                <p class="font-semibold">${piatto.nome}</p>
+                <p class="text-green-600 font-bold">${piatto.prezzo.toFixed(2)} €</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-9 h-9 bg-gray-200 hover:bg-gray-300 rounded-2xl font-bold text-xl">-</button>
+                <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-10 text-center font-bold text-xl">0</span>
+                <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-9 h-9 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-xl">+</button>
+              </div>
+            </div>`;
+        });
+      });
+      document.getElementById('menu-grid').innerHTML = html;
+    }
+
+    function cambiaQuantita(nome, prezzo, delta) {
+      let item = ordineCorrente.find(i => i.nome === nome);
+      if (!item) {
+        item = {nome, prezzo, quantita: 0};
+        ordineCorrente.push(item);
+      }
+      item.quantita = Math.max(0, (item.quantita || 0) + delta);
+      if (item.quantita === 0) ordineCorrente = ordineCorrente.filter(i => i.nome !== nome);
+
+      document.getElementById(`qty-${nome.replace(/\s+/g,'')}`).textContent = item.quantita || 0;
+      aggiornaOrdineCorrente();
+    }
+
+    function aggiornaOrdineCorrente() {
+      let html = '';
+      let totale = 0;
+      ordineCorrente.forEach(item => {
+        totale += item.prezzo * item.quantita;
+        html += `<div class="flex justify-between py-1"><span>${item.nome} ×${item.quantita}</span><span>${(item.prezzo * item.quantita).toFixed(2)} €</span></div>`;
+      });
+      document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
+      document.getElementById('totale-ordine').textContent = totale.toFixed(2) + " €";
+      calcolaResto();
+    }
+
+    function calcolaResto() {
+      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
+      const consegnato = parseFloat(document.getElementById('importo-consegnato').value) || 0;
+      document.getElementById('resto').textContent = Math.max(0, consegnato - totale).toFixed(2) + " €";
+    }
+
+    function confermaOrdine() {
+      if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
+
+      const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
+      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
+
+      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+      const numero = ordini.length + 1;
+
+      const ordine = {
+        numero,
+        data: new Date().toLocaleString('it-IT'),
+        cliente: nome,
+        items: ordineCorrente.map(i => `${i.nome} ×${i.quantita}`),
+        totale,
+        orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})
+      };
+
+      ordineCorrente.forEach(item => {
+        if (giacenza[item.nome] !== undefined) giacenza[item.nome] -= item.quantita;
+      });
+
+      ordini.push(ordine);
+      localStorage.setItem('ordiniFesta', JSON.stringify(ordini));
+
+      alert(`✅ Ordine #${numero.toString().padStart(3,'0')} registrato!`);
+
+      ordineCorrente = [];
+      document.getElementById('nome-cliente').value = '';
+      document.getElementById('importo-consegnato').value = 0;
+      caricaTutto();
+    }
+
+    function caricaCronologia() {
+      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
+      let html = '';
+      ordini.slice().reverse().forEach(o => {
+        html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero.toString().padStart(3,'0')} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
+      });
+      document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
+    }
 
     function aggiornaTotaleSerata() {
       let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      const totaleSerata = ordini.reduce((sum, o) => sum + (o.totale || 0), 0);
-      document.getElementById('totale-serata').textContent = totaleSerata.toFixed(2) + " €";
+      const totale = ordini.reduce((sum, o) => sum + (o.totale || 0), 0);
+      document.getElementById('totale-serata').textContent = totale.toFixed(2) + " €";
     }
 
     function generaReport() {
@@ -120,20 +254,20 @@
       const ora = new Date().toLocaleString('it-IT');
 
       let html = `
-        <p class="text-lg mb-6"><strong>Numero Ordini:</strong> ${ordini.length}</p>
+        <p class="mb-4"><strong>Numero totale ordini:</strong> ${ordini.length}</p>
         <p class="text-3xl font-bold text-green-600 mb-6">Totale Incassato: ${totaleSerata.toFixed(2)} €</p>
-        <h3 class="font-bold mb-3">Dettaglio Ordini:</h3>
+        <h3 class="font-bold mb-4 border-b pb-2">Dettaglio Ordini:</h3>
       `;
 
       ordini.slice().reverse().forEach(o => {
         html += `
-          <div class="border-b py-3">
-            <strong>#${o.numero.toString().padStart(3,'0')}</strong> - ${o.cliente}<br>
-            <span class="text-green-600">${o.totale.toFixed(2)} €</span> - ${o.orario || ''}
+          <div class="border-b py-4">
+            <strong>#${o.numero.toString().padStart(3,'0')} - ${o.cliente}</strong><br>
+            <span class="text-green-600">${o.totale.toFixed(2)} €</span> - ${o.orario}
           </div>`;
       });
 
-      document.getElementById('report-data').textContent = `Generato il ${ora}`;
+      document.getElementById('report-data').innerHTML = `<strong>Generato il:</strong> ${ora}`;
       document.getElementById('contenuto-report').innerHTML = html;
       document.getElementById('modal-report').classList.remove('hidden');
     }
@@ -146,7 +280,7 @@
       window.print();
     }
 
-    // Avvio
+    // Avvio applicazione
     caricaTutto();
   </script>
 </body>
