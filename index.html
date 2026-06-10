@@ -28,13 +28,11 @@
     </div>
 
     <div class="grid grid-cols-12 gap-6">
-      <!-- Giacenza -->
       <div class="col-span-3 bg-white rounded-3xl shadow p-5">
         <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
         <div id="giacenza" class="space-y-3 text-sm"></div>
       </div>
 
-      <!-- Menu -->
       <div class="col-span-6">
         <div class="mb-6">
           <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
@@ -42,7 +40,6 @@
         <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
       </div>
 
-      <!-- Destra -->
       <div class="col-span-3 space-y-6">
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
@@ -51,9 +48,7 @@
           <div class="mt-6 space-y-3">
             <div>
               <label class="block text-sm text-gray-600 mb-1">Importo Consegnato (€)</label>
-              <input type="number" id="importo-consegnato" step="0.5" value="0" 
-                     class="w-full p-3 rounded-2xl border-2 border-green-300 text-2xl text-center font-bold" 
-                     oninput="calcolaResto()">
+              <input type="number" id="importo-consegnato" step="0.5" value="0" class="w-full p-3 rounded-2xl border-2 border-green-300 text-2xl text-center font-bold" oninput="calcolaResto()">
             </div>
             <div class="flex justify-between text-lg font-bold">
               <span>Totale Ordine:</span>
@@ -65,8 +60,7 @@
             </div>
           </div>
 
-          <button onclick="confermaOrdine()" 
-                  class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
+          <button onclick="confermaOrdine()" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
             ✅ CONFERMA ORDINE
           </button>
         </div>
@@ -129,7 +123,6 @@
       menuData.categorie.forEach(cat => {
         html += `<h2 class="col-span-2 text-4xl font-bold text-amber-900 mt-10 mb-6">${cat.nome}</h2>`;
         cat.piatti.forEach(piatto => {
-          const isBevanda = cat.nome === "Bevande";
           html += `
             <div class="bg-white p-5 rounded-3xl shadow flex items-center gap-4">
               <div class="flex-1">
@@ -140,12 +133,6 @@
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-2xl font-bold text-2xl">-</button>
                 <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-12 text-center font-bold text-3xl">0</span>
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-10 h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-2xl">+</button>
-                ${isBevanda ? `
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}">
-                    <span class="text-base font-medium text-green-700">Consegnata</span>
-                  </label>
-                ` : ''}
               </div>
             </div>`;
         });
@@ -156,7 +143,7 @@
     function cambiaQuantita(nome, prezzo, delta) {
       let item = ordineCorrente.find(i => i.nome === nome);
       if (!item) {
-        item = {nome, prezzo, quantita: 0, consegnata: false};
+        item = {nome, prezzo, quantita: 0};
         ordineCorrente.push(item);
       }
       item.quantita = Math.max(0, (item.quantita || 0) + delta);
@@ -185,12 +172,6 @@
     function confermaOrdine() {
       if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
 
-      document.querySelectorAll('.consegnata-check').forEach(check => {
-        const nome = check.dataset.name;
-        let item = ordineCorrente.find(i => i.nome === nome);
-        if (item) item.consegnata = check.checked;
-      });
-
       const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
       const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
 
@@ -198,16 +179,19 @@
         numero: Date.now(),
         data: new Date().toLocaleString('it-IT'),
         cliente: nome,
-        items: ordineCorrente.map(i => i.consegnata ? `${i.nome} ×${i.quantita} (Consegnata)` : `${i.nome} ×${i.quantita}`),
+        items: ordineCorrente.map(i => `${i.nome} ×${i.quantita}`),
         totale: totale,
         orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
         timestamp: Date.now()
       }).then(() => {
-        alert(`✅ Ordine registrato con successo!`);
+        alert(`✅ Ordine # registrato con successo!`);
         ordineCorrente = [];
         document.getElementById('nome-cliente').value = '';
         document.getElementById('importo-consegnato').value = 0;
         caricaTutto();
+      }).catch(err => {
+        console.error(err);
+        alert("Errore di salvataggio");
       });
     }
 
@@ -234,8 +218,6 @@
     function resetCompleto() {
       if (confirm("⚠️ Resettare tutto?") && confirm("Conferma 2/3") && confirm("Conferma finale")) {
         db.ref('ordini').remove();
-        giacenza = {...giacenzaIniziale};
-        ordineCorrente = [];
         alert("✅ Tutto resettato!");
         caricaTutto();
       }
