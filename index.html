@@ -9,7 +9,7 @@
 </head>
 <body class="bg-orange-50">
   <div class="max-w-7xl mx-auto p-4">
-    <!-- Header con Totale Serata e Report -->
+    <!-- Header -->
     <div class="flex justify-between items-center mb-6">
       <div>
         <h1 class="text-4xl font-bold text-amber-900">🎉 Festa di Sant'Elena</h1>
@@ -21,10 +21,10 @@
           <p class="text-sm text-gray-500">Totale Serata</p>
           <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
         </div>
-        <button onclick="generaReport()" 
-                class="bg-blue-600 hover:bg-blue-700 text-white px-7 py-4 rounded-3xl font-medium flex items-center gap-2 shadow-lg">
-          <i class="fas fa-chart-bar"></i> 
-          📊 Report Serata
+        
+        <button onclick="resetCompleto()" 
+                class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
+          <i class="fas fa-trash"></i> Reset Tutto
         </button>
       </div>
     </div>
@@ -82,49 +82,30 @@
     </div>
   </div>
 
-  <!-- Modal Report -->
-  <div id="modal-report" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-3xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-auto">
-      <div class="p-6 border-b flex justify-between items-center">
-        <h2 class="text-3xl font-bold text-amber-900">📊 Report della Serata</h2>
-        <button onclick="chiudiReport()" class="text-3xl text-gray-400 hover:text-gray-600">×</button>
-      </div>
-      <div class="p-6" id="contenuto-report"></div>
-      <div class="p-6 border-t flex gap-3">
-        <button onclick="chiudiReport()" class="flex-1 py-4 bg-gray-200 hover:bg-gray-300 rounded-2xl font-medium">Chiudi</button>
-        <button onclick="stampaReport()" class="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium">🖨️ Stampa Report</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    let giacenza = {
+    let giacenzaIniziale = {
       "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
       "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
       "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
     };
 
+    let giacenza = {...giacenzaIniziale};
+
     const menuData = {
       categorie: [
         { nome: "Cibo", piatti: [
-          { nome: "Arancini", prezzo: 3.5 },
-          { nome: "Olive Ascolane", prezzo: 4 },
-          { nome: "Patatine Fritte", prezzo: 2.5 },
-          { nome: "Hot Dog", prezzo: 3.5 },
+          { nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 },
+          { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 },
           { nome: "Panino Salame", prezzo: 4 }
         ]},
         { nome: "Bevande", piatti: [
-          { nome: "Acqua Naturale", prezzo: 1.5 },
-          { nome: "Acqua Frizzante", prezzo: 1.5 },
-          { nome: "Coca Cola", prezzo: 2.5 },
-          { nome: "Aranciata", prezzo: 2.5 },
+          { nome: "Acqua Naturale", prezzo: 1.5 }, { nome: "Acqua Frizzante", prezzo: 1.5 },
+          { nome: "Coca Cola", prezzo: 2.5 }, { nome: "Aranciata", prezzo: 2.5 },
           { nome: "Birra", prezzo: 3.5 }
         ]},
         { nome: "Dolci e Gelati", piatti: [
-          { nome: "Gelato Cioccolato", prezzo: 2.5 },
-          { nome: "Gelato Nocciola", prezzo: 2.5 },
-          { nome: "Gelato Fragola", prezzo: 2.5 },
-          { nome: "Coppa Mista", prezzo: 3.5 },
+          { nome: "Gelato Cioccolato", prezzo: 2.5 }, { nome: "Gelato Nocciola", prezzo: 2.5 },
+          { nome: "Gelato Fragola", prezzo: 2.5 }, { nome: "Coppa Mista", prezzo: 3.5 },
           { nome: "Torta della Nonna", prezzo: 3.5 }
         ]}
       ]
@@ -183,8 +164,7 @@
     }
 
     function aggiornaOrdineCorrente() {
-      let html = '';
-      let totale = 0;
+      let html = '', totale = 0;
       ordineCorrente.forEach(item => {
         totale += item.prezzo * item.quantita;
         html += `<div class="flex justify-between py-1"><span>${item.nome} ×${item.quantita}</span><span>${(item.prezzo * item.quantita).toFixed(2)} €</span></div>`;
@@ -210,7 +190,7 @@
       const numero = ordini.length + 1;
 
       const ordine = {
-        numero,
+        numero, 
         data: new Date().toLocaleString('it-IT'),
         cliente: nome,
         items: ordineCorrente.map(i => `${i.nome} ×${i.quantita}`),
@@ -248,39 +228,23 @@
       document.getElementById('totale-serata').textContent = totale.toFixed(2) + " €";
     }
 
-    function generaReport() {
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      const totaleSerata = ordini.reduce((sum, o) => sum + (o.totale || 0), 0);
-      const ora = new Date().toLocaleString('it-IT');
+    // Reset con tripla conferma
+    function resetCompleto() {
+      if (!confirm("⚠️ ATTENZIONE!\nVuoi davvero resettare TUTTO?\nQuesta azione è irreversibile.")) return;
+      if (!confirm("❗ CONFERMA 2/3\nSei sicuro di voler cancellare tutti gli ordini e azzerare la giacenza?")) return;
+      if (!confirm("❗ CONFERMA FINALE 3/3\nPremi OK per resettare tutto definitivamente.")) return;
 
-      let html = `
-        <p class="mb-4"><strong>Numero totale ordini:</strong> ${ordini.length}</p>
-        <p class="text-3xl font-bold text-green-600 mb-6">Totale Incassato: ${totaleSerata.toFixed(2)} €</p>
-        <h3 class="font-bold mb-4 border-b pb-2">Dettaglio Ordini:</h3>
-      `;
+      localStorage.removeItem('ordiniFesta');
+      giacenza = {...giacenzaIniziale};
+      ordineCorrente = [];
+      document.getElementById('nome-cliente').value = '';
+      document.getElementById('importo-consegnato').value = 0;
 
-      ordini.slice().reverse().forEach(o => {
-        html += `
-          <div class="border-b py-4">
-            <strong>#${o.numero.toString().padStart(3,'0')} - ${o.cliente}</strong><br>
-            <span class="text-green-600">${o.totale.toFixed(2)} €</span> - ${o.orario}
-          </div>`;
-      });
-
-      document.getElementById('report-data').innerHTML = `<strong>Generato il:</strong> ${ora}`;
-      document.getElementById('contenuto-report').innerHTML = html;
-      document.getElementById('modal-report').classList.remove('hidden');
+      alert("✅ Tutto è stato resettato correttamente!");
+      caricaTutto();
     }
 
-    function chiudiReport() {
-      document.getElementById('modal-report').classList.add('hidden');
-    }
-
-    function stampaReport() {
-      window.print();
-    }
-
-    // Avvio applicazione
+    // Avvio
     caricaTutto();
   </script>
 </body>
