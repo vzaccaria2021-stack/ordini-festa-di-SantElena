@@ -76,10 +76,13 @@
         const isRitirato = ordine.ritirato || false;
         
         let itemsHtml = ordine.items.map(item => {
-          if (typeof item === 'string' && item.toLowerCase().includes('consegnata')) {
-            return `<span class="line-through text-gray-500 text-2xl">${item}</span>`;
-          }
-          return `<span class="text-2xl">${item}</span>`;
+          const text = typeof item === 'string' ? item : item.nome || item;
+          const isConsegnata = text.toLowerCase().includes('consegnata') || 
+                              (typeof item === 'object' && item.consegnata);
+          
+          return isConsegnata 
+            ? `<span class="line-through text-gray-500 text-2xl">${text}</span>` 
+            : `<span class="text-2xl">${text}</span>`;
         }).join('<br>');
 
         html += `
