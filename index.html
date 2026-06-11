@@ -101,7 +101,7 @@
     function caricaGiacenza() {
       let html = '';
       Object.keys(giacenza).forEach(item => {
-        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold text-lg">${giacenza[item]}</span></div>`;
+        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
       });
       document.getElementById('giacenza').innerHTML = html;
     }
@@ -169,6 +169,14 @@
       const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
       const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
 
+      // SCALA LA GIACENZA
+      ordineCorrente.forEach(item => {
+        if (giacenza[item.nome] !== undefined) {
+          giacenza[item.nome] -= item.quantita;
+          if (giacenza[item.nome] < 0) giacenza[item.nome] = 0;
+        }
+      });
+
       db.ref('ordini').push({
         numero: Date.now(),
         cliente: nome,
@@ -201,6 +209,11 @@
     function resetCompleto() {
       if (confirm("⚠️ Resettare tutto?") && confirm("Conferma 2/3") && confirm("Conferma finale")) {
         db.ref('ordini').remove();
+        giacenza = { /* reset giacenza */ 
+          "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
+          "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
+          "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
+        };
         alert("✅ Tutto resettato!");
         caricaTutto();
       }
