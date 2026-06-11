@@ -21,6 +21,9 @@
           <p class="text-sm text-gray-500">Totale Serata</p>
           <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
         </div>
+        <button onclick="resetCompleto()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
+          <i class="fas fa-trash"></i> Reset Tutto
+        </button>
       </div>
     </div>
 
@@ -43,33 +46,16 @@
       <div class="col-span-3 space-y-6">
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
-          <div id="ordine-corrente" class="min-h-[160px] text-sm"></div>
+          <div id="ordine-corrente" class="min-h-[180px] text-sm"></div>
 
-          <div class="mt-6 space-y-4">
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">Importo Consegnato (€)</label>
-              <input type="number" id="importo-consegnato" step="0.5" value="0" 
-                     class="w-full p-4 rounded-2xl border-2 border-green-300 text-3xl text-center font-bold" 
-                     oninput="calcolaResto()">
-            </div>
-            <div class="flex justify-between text-xl font-bold">
-              <span>Totale Ordine:</span>
-              <span id="totale-ordine" class="text-green-600">0.00 €</span>
-            </div>
-            <div class="flex justify-between text-xl font-bold text-red-600">
-              <span>Resto da dare:</span>
-              <span id="resto" class="font-bold">0.00 €</span>
-            </div>
-          </div>
-
-          <button onclick="confermaOrdine()" class="w-full mt-8 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
+          <button onclick="confermaOrdine()" class="w-full mt-6 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
             ✅ CONFERMA ORDINE
           </button>
         </div>
 
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">📋 Cronologia Ordini</h3>
-          <div id="cronologia" class="max-h-[350px] overflow-auto space-y-3 text-sm"></div>
+          <div id="cronologia" class="max-h-[380px] overflow-auto space-y-3 text-sm"></div>
         </div>
       </div>
     </div>
@@ -115,7 +101,7 @@
     function caricaGiacenza() {
       let html = '';
       Object.keys(giacenza).forEach(item => {
-        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
+        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold text-lg">${giacenza[item]}</span></div>`;
       });
       document.getElementById('giacenza').innerHTML = html;
     }
@@ -171,12 +157,6 @@
       document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
     }
 
-    function calcolaResto() {
-      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
-      const consegnato = parseFloat(document.getElementById('importo-consegnato').value) || 0;
-      document.getElementById('resto').textContent = Math.max(0, consegnato - totale).toFixed(2) + " €";
-    }
-
     function confermaOrdine() {
       if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
 
@@ -197,10 +177,9 @@
         orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
         timestamp: Date.now()
       }).then(() => {
-        alert("✅ Ordine registrato con successo!");
+        alert("✅ Ordine registrato!");
         ordineCorrente = [];
         document.getElementById('nome-cliente').value = '';
-        document.getElementById('importo-consegnato').value = 0;
         caricaTutto();
       });
     }
@@ -215,14 +194,6 @@
           html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero ? o.numero.toString().slice(-4) : ''} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
         });
         document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
-        document.getElementById('totale-serata').textContent = total.toFixed(2) + " €";
-      });
-    }
-
-    function aggiornaTotaleSerata() {
-      db.ref('ordini').on('value', snapshot => {
-        let total = 0;
-        snapshot.forEach(child => total += child.val().totale || 0);
         document.getElementById('totale-serata').textContent = total.toFixed(2) + " €";
       });
     }
