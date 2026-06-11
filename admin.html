@@ -6,6 +6,8 @@
   <title>Admin - Ordini Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
   <div class="max-w-6xl mx-auto p-6">
@@ -45,91 +47,91 @@
   </div>
 
   <script>
-    function caricaOrdini(filtro = '') {
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      
-      const totali = ordini.length;
-      const ritirati = ordini.filter(o => o.ritirato).length;
-      const daRitirare = totali - ritirati;
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDX2e05Z2LGbm3I1bUVpXG7wu4WgKbA78",
+      authDomain: "festa-sant-elena.firebaseapp.com",
+      databaseURL: "https://festa-sant-elena-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "festa-sant-elena",
+      storageBucket: "festa-sant-elena.firebasestorage.app",
+      messagingSenderId: "350486542022",
+      appId: "1:350486542022:web:b56a29e34ae8f6f6ec49c7"
+    };
 
-      document.getElementById('totale-ordini').textContent = totali;
-      document.getElementById('da-ritirare').textContent = daRitirare;
-      document.getElementById('ritirati').textContent = ritirati;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-      const container = document.getElementById('lista-ordini');
-      if (totali === 0) {
-        container.innerHTML = `<p class="text-center text-gray-500 py-24 text-4xl">Nessun ordine registrato</p>`;
-        return;
-      }
+    function caricaOrdini() {
+      db.ref('ordini').on('value', snapshot => {
+        let ordini = [];
+        snapshot.forEach(child => ordini.push(child.val()));
 
-      let html = '';
-      const filtered = ordini.filter(ordine => 
-        ordine.numero.toString().includes(filtro) || 
-        ordine.cliente.toLowerCase().includes(filtro.toLowerCase())
-      );
+        const totali = ordini.length;
+        const ritirati = ordini.filter(o => o.ritirato).length;
+        const daRitirare = totali - ritirati;
 
-      filtered.forEach((ordine, index) => {
-        const isRitirato = ordine.ritirato || false;
+        document.getElementById('totale-ordini').textContent = totali;
+        document.getElementById('da-ritirare').textContent = daRitirare;
+        document.getElementById('ritirati').textContent = ritirati;
+
+        const container = document.getElementById('lista-ordini');
+        if (totali === 0) {
+          container.innerHTML = `<p class="text-center text-gray-500 py-24 text-4xl">Nessun ordine registrato</p>`;
+          return;
+        }
+
+        let html = '';
+        ordini.slice().reverse().forEach((ordine, index) => {
+          const isRitirato = ordine.ritirato || false;
+          
+          let itemsHtml = ordine.items.map(item => {
+            const text = typeof item === 'string' ? item : '';
+            const isConsegnata = text.toLowerCase().includes('consegnata');
+            return isConsegnata 
+              ? `<span class="line-through text-gray-500 text-2xl">${text}</span>` 
+              : `<span class="text-2xl">${text}</span>`;
+          }).join('<br>');
+
+          const orarioConsegna = ordine.orarioConsegna 
+            ? `<p class="text-green-600 mt-4 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` 
+            : '';
+
+          html += `
+            <div class="border ${isRitirato ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-3xl p-10">
+              <div class="flex justify-between items-start mb-8">
+                <div>
+                  <span class="text-5xl font-bold text-amber-800">#${ordine.numero ? ordine.numero.toString().slice(-4) : ''}</span>
+                  <span class="text-gray-500 ml-6 text-2xl">${ordine.data || ''}</span>
+                </div>
+                <div class="text-right">
+                  <span class="text-5xl font-bold text-green-600">${ordine.totale ? ordine.totale.toFixed(2) : '0.00'} €</span>
+                </div>
+              </div>
+              
+              <div class="mb-8">
+                <p class="font-bold text-4xl mb-6">${ordine.cliente}</p>
+                <div class="text-gray-800 leading-relaxed">${itemsHtml}</div>
+                ${orarioConsegna}
+              </div>
+
+              <button onclick="toggleRitirato(${index})" 
+                      class="w-full py-7 text-3xl font-bold rounded-3xl ${isRitirato ? 
+                        'bg-gray-300 text-gray-600 cursor-not-allowed' : 
+                        'bg-green-600 hover:bg-green-700 text-white'}"
+                      ${isRitirato ? 'disabled' : ''}>
+                ${isRitirato ? '✓ Consegnato' : '✅ Segna come Consegnato'}
+              </button>
+            </div>`;
+        });
         
-        let itemsHtml = ordine.items.map(item => {
-          const text = typeof item === 'string' ? item : '';
-          const isConsegnata = text.toLowerCase().includes('consegnata');
-          return isConsegnata 
-            ? `<span class="line-through text-gray-500 text-2xl">${text}</span>` 
-            : `<span class="text-2xl">${text}</span>`;
-        }).join('<br>');
-
-        const orarioConsegna = ordine.orarioConsegna 
-          ? `<p class="text-green-600 mt-3 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` 
-          : '';
-
-        html += `
-          <div class="border ${isRitirato ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-3xl p-10">
-            <div class="flex justify-between items-start mb-8">
-              <div>
-                <span class="text-5xl font-bold text-amber-800">#${ordine.numero.toString().padStart(3, '0')}</span>
-                <span class="text-gray-500 ml-6 text-2xl">${ordine.data}</span>
-              </div>
-              <div class="text-right">
-                <span class="text-5xl font-bold text-green-600">${ordine.totale.toFixed(2)} €</span>
-              </div>
-            </div>
-            
-            <div class="mb-8">
-              <p class="font-bold text-4xl mb-6">${ordine.cliente}</p>
-              <div class="text-gray-800 leading-relaxed">${itemsHtml}</div>
-              ${orarioConsegna}
-            </div>
-
-            <button onclick="toggleRitirato(${index})" 
-                    class="w-full py-7 text-3xl font-bold rounded-3xl ${isRitirato ? 
-                      'bg-gray-300 text-gray-600 cursor-not-allowed' : 
-                      'bg-green-600 hover:bg-green-700 text-white'}"
-                    ${isRitirato ? 'disabled' : ''}>
-              ${isRitirato ? '✓ Consegnato' : '✅ Segna come Consegnato'}
-            </button>
-          </div>`;
+        container.innerHTML = html || `<p class="text-center text-gray-500 py-16 text-3xl">Nessun ordine trovato</p>`;
       });
-      
-      container.innerHTML = html || `<p class="text-center text-gray-500 py-16 text-3xl">Nessun ordine trovato</p>`;
     }
 
-    function toggleRitirato(globalIndex) {
-      let ordini = JSON.parse(localStorage.getItem('ordiniFesta') || '[]');
-      if (ordini[globalIndex].ritirato) return;
-
-      ordini[globalIndex].ritirato = true;
-      ordini[globalIndex].orarioConsegna = new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
-      
-      localStorage.setItem('ordiniFesta', JSON.stringify(ordini));
-      caricaOrdini(document.getElementById('search-input').value);
+    function toggleRitirato(index) {
+      alert("Funzione Segna come Consegnato in fase di sviluppo");
     }
 
-    // Ricerca e aggiornamento automatico
-    document.getElementById('search-input').addEventListener('input', (e) => {
-      caricaOrdini(e.target.value);
-    });
-    setInterval(() => caricaOrdini(document.getElementById('search-input').value), 5000);
+    // Avvio
     caricaOrdini();
   </script>
 </body>
