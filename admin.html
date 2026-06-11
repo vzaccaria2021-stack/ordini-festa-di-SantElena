@@ -30,14 +30,10 @@
       </div>
     </div>
 
-    <!-- Ricerca -->
     <div class="mb-8">
-      <div class="relative">
-        <input type="text" id="search-input" 
-               class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
-               placeholder="Cerca per numero o nome cliente...">
-        <i class="fas fa-search absolute left-7 top-7 text-gray-400 text-3xl"></i>
-      </div>
+      <input type="text" id="search-input" 
+             class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
+             placeholder="Cerca per numero o nome cliente...">
     </div>
 
     <div class="bg-white rounded-3xl shadow p-8">
@@ -63,56 +59,52 @@
     function caricaOrdini() {
       db.ref('ordini').on('value', (snapshot) => {
         let ordini = [];
-        snapshot.forEach(child => ordini.push(child.val()));
+        snapshot.forEach(child => {
+          ordini.push({ key: child.key, ...child.val() });
+        });
 
-        const totali = ordini.length;
-        const consegnati = ordini.filter(o => o.consegnato).length;
-        const daConsegnare = totali - consegnati;
-
-        document.getElementById('totale-ordini').textContent = totali;
-        document.getElementById('da-ritirare').textContent = daConsegnare;
-        document.getElementById('ritirati').textContent = consegnati;
+        // Aggiorna contatori
+        document.getElementById('totale-ordini').textContent = ordini.length;
+        document.getElementById('da-ritirare').textContent = ordini.filter(o => !o.consegnato).length;
+        document.getElementById('ritirati').textContent = ordini.filter(o => o.consegnato).length;
 
         const container = document.getElementById('lista-ordini');
         container.innerHTML = '';
 
-        if (totali === 0) {
+        if (ordini.length === 0) {
           container.innerHTML = `<p class="text-center text-gray-500 py-24 text-4xl">Nessun ordine registrato</p>`;
           return;
         }
 
-        // Ordina dal più recente
+        // Ordina dal più recente al più vecchio
         ordini.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-        ordini.forEach((ordine, index) => {
+        ordini.forEach(ordine => {
           const isConsegnato = ordine.consegnato || false;
-          
-          let itemsHtml = ordine.items.map(item => {
+
+          let itemsHtml = (ordine.items || []).map(item => {
             const text = typeof item === 'string' ? item : '';
-            const isConsegnata = text.includes('(Consegnata)');
-            return isConsegnata 
+            return text.includes('(Consegnata)') 
               ? `<span class="line-through text-gray-500">${text}</span>` 
               : `<span>${text}</span>`;
           }).join('<br>');
 
           const orarioConsegna = ordine.orarioConsegna 
-            ? `<p class="text-green-600 mt-3 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` 
-            : '';
+            ? `<p class="text-green-600 mt-3 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` : '';
 
           const html = `
             <div class="border ${isConsegnato ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-3xl p-8">
               <div class="flex justify-between mb-6">
                 <div>
                   <span class="text-5xl font-bold text-amber-800">#${ordine.numero ? ordine.numero.toString().slice(-4) : ''}</span>
-                  <span class="ml-4 text-gray-500">${ordine.data || ''}</span>
                 </div>
                 <div class="text-5xl font-bold text-green-600">${ordine.totale ? ordine.totale.toFixed(2) : '0.00'} €</div>
               </div>
-              <p class="text-3xl font-bold mb-4">${ordine.cliente}</p>
-              <div class="text-xl mb-4">${itemsHtml}</div>
+              <p class="text-3xl font-bold mb-4">${ordine.cliente || 'Cliente Anonimo'}</p>
+              <div class="text-xl mb-6">${itemsHtml}</div>
               ${orarioConsegna}
 
-              <button onclick="segnaComeConsegnato('${ordine.timestamp}')" 
+              <button onclick="segnaComeConsegnato('${ordine.key}')" 
                       class="w-full py-6 text-2xl font-bold rounded-3xl ${isConsegnato ? 
                         'bg-gray-300 text-gray-600 cursor-not-allowed' : 
                         'bg-green-600 hover:bg-green-700 text-white'}"
@@ -125,14 +117,11 @@
       });
     }
 
-    function segnaComeConsegnato(timestamp) {
-      db.ref('ordini').orderByChild('timestamp').equalTo(Number(timestamp)).limitToFirst(1).once('value', snapshot => {
-        snapshot.forEach(child => {
-          child.ref.update({
-            consegnato: true,
-            orarioConsegna: new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})
-          });
-        });
+    function segnaComeConsegnato(key) {
+      if (!key) return;
+      db.ref('ordini/' + key).update({
+        consegnato: true,
+        orarioConsegna: new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})
       });
     }
 
