@@ -3,79 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ordini - Festa Sant'Elena</title>
+  <title>Admin - Ordini Festa Sant'Elena</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 </head>
-<body class="bg-orange-50">
-  <div class="max-w-7xl mx-auto p-4">
-    <div class="flex justify-between items-center mb-6">
-      <div>
-        <h1 class="text-4xl font-bold text-amber-900">🎉 Festa di Sant'Elena</h1>
-        <p class="text-amber-700">Menu del 09-06-2026</p>
-      </div>
-      <div class="flex items-center gap-4">
-        <div class="bg-white rounded-3xl shadow px-8 py-4 text-center">
-          <p class="text-sm text-gray-500">Totale Serata</p>
-          <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-6xl mx-auto p-6">
+
+    <div class="bg-white rounded-3xl shadow p-8 mb-8">
+      <div class="grid grid-cols-3 gap-8 text-center">
+        <div>
+          <p class="text-xl text-gray-500">Totali</p>
+          <p id="totale-ordini" class="text-6xl font-bold text-amber-800">0</p>
         </div>
-        <button onclick="resetCompleto()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
-          <i class="fas fa-trash"></i> Reset Tutto
-        </button>
+        <div>
+          <p class="text-xl text-gray-500">Da ritirare</p>
+          <p id="da-ritirare" class="text-6xl font-bold text-blue-600">0</p>
+        </div>
+        <div>
+          <p class="text-xl text-gray-500">Ritirati</p>
+          <p id="ritirati" class="text-6xl font-bold text-green-600">0</p>
+        </div>
       </div>
     </div>
 
-    <div class="grid grid-cols-12 gap-6">
-      <!-- GIACENZA -->
-      <div class="col-span-3 bg-white rounded-3xl shadow p-5">
-        <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
-        <div id="giacenza" class="space-y-3 text-sm"></div>
-      </div>
+    <div class="mb-8">
+      <input type="text" id="search-input" 
+             class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
+             placeholder="Cerca per numero o nome cliente...">
+    </div>
 
-      <!-- MENU -->
-      <div class="col-span-6">
-        <div class="mb-6">
-          <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
-        </div>
-        <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
-      </div>
-
-      <!-- DESTRA -->
-      <div class="col-span-3 space-y-6">
-        <div class="bg-white rounded-3xl shadow p-5">
-          <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
-          <div id="ordine-corrente" class="min-h-[140px] text-sm"></div>
-
-          <!-- SOLDI + RESTO -->
-          <div class="mt-6 space-y-4 border-t pt-4">
-            <div>
-              <label class="block text-sm text-gray-600 mb-1">Soldi dati dal cliente (€)</label>
-              <input type="number" id="importo-consegnato" step="0.01" value="0" 
-                     class="w-full p-4 rounded-2xl border-2 border-green-400 text-3xl text-center font-bold" 
-                     oninput="calcolaResto()">
-            </div>
-            <div class="flex justify-between text-xl font-bold">
-              <span>Totale Ordine:</span>
-              <span id="totale-ordine" class="text-green-600">0.00 €</span>
-            </div>
-            <div class="flex justify-between text-2xl font-bold text-red-600 bg-red-50 p-4 rounded-2xl">
-              <span>Resto da dare:</span>
-              <span id="resto" class="font-bold">0.00 €</span>
-            </div>
-          </div>
-
-          <button onclick="confermaOrdine()" class="w-full mt-8 bg-green-600 hover:bg-green-700 text-white py-5 rounded-3xl text-xl font-bold">
-            ✅ CONFERMA ORDINE
-          </button>
-        </div>
-
-        <div class="bg-white rounded-3xl shadow p-5">
-          <h3 class="font-bold mb-4">📋 Cronologia Ordini</h3>
-          <div id="cronologia" class="max-h-[350px] overflow-auto space-y-3 text-sm"></div>
-        </div>
-      </div>
+    <div class="bg-white rounded-3xl shadow p-8">
+      <h2 class="text-4xl font-bold mb-10">Lista Ordini Registrati</h2>
+      <div id="lista-ordini" class="space-y-8"></div>
     </div>
   </div>
 
@@ -93,153 +55,57 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let giacenza = {
-      "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
-      "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
-      "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
-    };
+    function caricaOrdini() {
+      db.ref('ordini').on('value', (snapshot) => {
+        const ordini = [];
+        snapshot.forEach((child) => {
+          ordini.push(child.val());
+        });
 
-    let ordineCorrente = [];
+        // Aggiorna contatori
+        document.getElementById('totale-ordini').textContent = ordini.length;
+        document.getElementById('da-ritirare').textContent = ordini.length;
+        document.getElementById('ritirati').textContent = 0;
 
-    const menuData = {
-      categorie: [
-        { nome: "Cibo", piatti: [{ nome: "Arancini", prezzo: 3.5 }, { nome: "Olive Ascolane", prezzo: 4 }, { nome: "Patatine Fritte", prezzo: 2.5 }, { nome: "Hot Dog", prezzo: 3.5 }, { nome: "Panino Salame", prezzo: 4 }]},
-        { nome: "Bevande", piatti: [{ nome: "Acqua Naturale", prezzo: 1.5 }, { nome: "Acqua Frizzante", prezzo: 1.5 }, { nome: "Coca Cola", prezzo: 2.5 }, { nome: "Aranciata", prezzo: 2.5 }, { nome: "Birra", prezzo: 3.5 }]},
-        { nome: "Dolci e Gelati", piatti: [{ nome: "Gelato Cioccolato", prezzo: 2.5 }, { nome: "Gelato Nocciola", prezzo: 2.5 }, { nome: "Gelato Fragola", prezzo: 2.5 }, { nome: "Coppa Mista", prezzo: 3.5 }, { nome: "Torta della Nonna", prezzo: 3.5 }]}
-      ]
-    };
+        const container = document.getElementById('lista-ordini');
+        container.innerHTML = '';
 
-    function caricaTutto() {
-      caricaGiacenza();
-      caricaMenu();
-      caricaCronologia();
-      aggiornaTotaleSerata();
-    }
+        if (ordini.length === 0) {
+          container.innerHTML = `<p class="text-center text-gray-500 py-20 text-4xl">Nessun ordine registrato</p>`;
+          return;
+        }
 
-    function caricaGiacenza() {
-      let html = '';
-      Object.keys(giacenza).forEach(item => {
-        html += `<div class="flex justify-between py-1"><span>${item}</span><span class="font-bold">${giacenza[item]}</span></div>`;
-      });
-      document.getElementById('giacenza').innerHTML = html;
-    }
+        // Ordina dal più recente al più vecchio
+        ordini.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-    function caricaMenu() {
-      let html = '';
-      menuData.categorie.forEach(cat => {
-        html += `<h2 class="col-span-2 text-4xl font-bold text-amber-900 mt-10 mb-6">${cat.nome}</h2>`;
-        cat.piatti.forEach(piatto => {
-          const isBevanda = cat.nome === "Bevande";
-          html += `
-            <div class="bg-white p-5 rounded-3xl shadow flex items-center gap-4">
-              <div class="flex-1">
-                <p class="font-semibold text-xl">${piatto.nome}</p>
-                <p class="text-green-600 font-bold text-2xl">${piatto.prezzo.toFixed(2)} €</p>
+        ordini.forEach((ordine) => {
+          const itemsHtml = ordine.items.map(item => {
+            if (typeof item === 'string' && item.includes('Consegnata')) {
+              return `<span class="line-through text-gray-500">${item}</span>`;
+            }
+            return `<span>${item}</span>`;
+          }).join('<br>');
+
+          const html = `
+            <div class="border border-gray-200 rounded-3xl p-8">
+              <div class="flex justify-between mb-6">
+                <div>
+                  <span class="text-5xl font-bold text-amber-800">#${ordine.numero ? ordine.numero.toString().slice(-4) : '---'}</span>
+                  <span class="ml-4 text-gray-500">${ordine.data || ''}</span>
+                </div>
+                <div class="text-5xl font-bold text-green-600">${ordine.totale ? ordine.totale.toFixed(2) : '0.00'} €</div>
               </div>
-              <div class="flex items-center gap-4">
-                <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-2xl font-bold text-2xl">-</button>
-                <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-12 text-center font-bold text-3xl">0</span>
-                <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-10 h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-2xl">+</button>
-                ${isBevanda ? `
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}">
-                    <span class="text-base font-medium text-green-700">Consegnata</span>
-                  </label>
-                ` : ''}
-              </div>
+              <p class="text-3xl font-bold mb-4">${ordine.cliente}</p>
+              <div class="text-xl text-gray-700">${itemsHtml}</div>
             </div>`;
+          
+          container.innerHTML += html;
         });
       });
-      document.getElementById('menu-grid').innerHTML = html;
-    }
-
-    function cambiaQuantita(nome, prezzo, delta) {
-      let item = ordineCorrente.find(i => i.nome === nome);
-      if (!item) {
-        item = {nome, prezzo, quantita: 0, consegnata: false};
-        ordineCorrente.push(item);
-      }
-      item.quantita = Math.max(0, (item.quantita || 0) + delta);
-      if (item.quantita === 0) ordineCorrente = ordineCorrente.filter(i => i.nome !== nome);
-
-      document.getElementById(`qty-${nome.replace(/\s+/g,'')}`).textContent = item.quantita || 0;
-      aggiornaOrdineCorrente();
-    }
-
-    function aggiornaOrdineCorrente() {
-      let html = '', totale = 0;
-      ordineCorrente.forEach(item => {
-        totale += item.prezzo * item.quantita;
-        html += `<div class="flex justify-between py-1"><span>${item.nome} ×${item.quantita}</span><span>${(item.prezzo * item.quantita).toFixed(2)} €</span></div>`;
-      });
-      document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
-      document.getElementById('totale-ordine').textContent = totale.toFixed(2) + " €";
-      calcolaResto();
-    }
-
-    function calcolaResto() {
-      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
-      const consegnato = parseFloat(document.getElementById('importo-consegnato').value) || 0;
-      const resto = Math.max(0, consegnato - totale);
-      document.getElementById('resto').textContent = resto.toFixed(2) + " €";
-    }
-
-    function confermaOrdine() {
-      if (ordineCorrente.length === 0) return alert("Seleziona almeno un prodotto!");
-
-      document.querySelectorAll('.consegnata-check').forEach(check => {
-        const nome = check.dataset.name;
-        let item = ordineCorrente.find(i => i.nome === nome);
-        if (item) item.consegnata = check.checked;
-      });
-
-      const nome = document.getElementById('nome-cliente').value.trim() || "Cliente Anonimo";
-      const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
-
-      ordineCorrente.forEach(item => {
-        if (giacenza[item.nome] !== undefined) giacenza[item.nome] -= item.quantita;
-      });
-
-      db.ref('ordini').push({
-        numero: Date.now(),
-        cliente: nome,
-        items: ordineCorrente.map(i => i.consegnata ? `${i.nome} ×${i.quantita} (Consegnata)` : `${i.nome} ×${i.quantita}`),
-        totale: totale,
-        orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
-        timestamp: Date.now()
-      }).then(() => {
-        alert("✅ Ordine registrato!");
-        ordineCorrente = [];
-        document.getElementById('nome-cliente').value = '';
-        document.getElementById('importo-consegnato').value = 0;
-        caricaTutto();
-      });
-    }
-
-    function caricaCronologia() {
-      db.ref('ordini').on('value', snapshot => {
-        let html = '';
-        let total = 0;
-        snapshot.forEach(child => {
-          const o = child.val();
-          total += o.totale || 0;
-          html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero ? o.numero.toString().slice(-4) : ''} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
-        });
-        document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
-        document.getElementById('totale-serata').textContent = total.toFixed(2) + " €";
-      });
-    }
-
-    function resetCompleto() {
-      if (confirm("⚠️ Resettare tutto?") && confirm("Conferma 2/3") && confirm("Conferma finale")) {
-        db.ref('ordini').remove();
-        alert("✅ Tutto resettato!");
-        caricaTutto();
-      }
     }
 
     // Avvio
-    caricaTutto();
+    caricaOrdini();
   </script>
 </body>
 </html>
