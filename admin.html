@@ -30,6 +30,7 @@
       </div>
     </div>
 
+    <!-- Ricerca -->
     <div class="mb-8">
       <input type="text" id="search-input" 
              class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
@@ -59,9 +60,7 @@
     function caricaOrdini() {
       db.ref('ordini').on('value', (snapshot) => {
         let ordini = [];
-        snapshot.forEach(child => {
-          ordini.push({ key: child.key, ...child.val() });
-        });
+        snapshot.forEach(child => ordini.push({key: child.key, ...child.val()}));
 
         // Aggiorna contatori
         document.getElementById('totale-ordini').textContent = ordini.length;
@@ -76,8 +75,11 @@
           return;
         }
 
-        // Ordina dal più recente al più vecchio
-        ordini.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        // Ordine numerico: prima non consegnati (in ordine di numero), poi consegnati
+        ordini.sort((a, b) => {
+          if (a.consegnato !== b.consegnato) return a.consegnato ? 1 : -1;
+          return (a.numero || 0) - (b.numero || 0);
+        });
 
         ordini.forEach(ordine => {
           const isConsegnato = ordine.consegnato || false;
@@ -89,20 +91,20 @@
               : `<span>${text}</span>`;
           }).join('<br>');
 
-          const orarioConsegna = ordine.orarioConsegna 
+          const orario = ordine.orarioConsegna 
             ? `<p class="text-green-600 mt-3 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` : '';
 
           const html = `
             <div class="border ${isConsegnato ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-3xl p-8">
               <div class="flex justify-between mb-6">
                 <div>
-                  <span class="text-5xl font-bold text-amber-800">#${ordine.numero ? ordine.numero.toString().slice(-4) : ''}</span>
+                  <span class="text-5xl font-bold text-amber-800">#${ordine.numero || '---'}</span>
                 </div>
                 <div class="text-5xl font-bold text-green-600">${ordine.totale ? ordine.totale.toFixed(2) : '0.00'} €</div>
               </div>
               <p class="text-3xl font-bold mb-4">${ordine.cliente || 'Cliente Anonimo'}</p>
               <div class="text-xl mb-6">${itemsHtml}</div>
-              ${orarioConsegna}
+              ${orario}
 
               <button onclick="segnaComeConsegnato('${ordine.key}')" 
                       class="w-full py-6 text-2xl font-bold rounded-3xl ${isConsegnato ? 
@@ -118,7 +120,6 @@
     }
 
     function segnaComeConsegnato(key) {
-      if (!key) return;
       db.ref('ordini/' + key).update({
         consegnato: true,
         orarioConsegna: new Date().toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'})
