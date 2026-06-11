@@ -28,13 +28,11 @@
     </div>
 
     <div class="grid grid-cols-12 gap-6">
-      <!-- GIACENZA -->
       <div class="col-span-3 bg-white rounded-3xl shadow p-5">
         <h2 class="text-xl font-bold mb-4 text-amber-800">📦 Giacenza Magazzino</h2>
         <div id="giacenza" class="space-y-3 text-sm"></div>
       </div>
 
-      <!-- MENU -->
       <div class="col-span-6">
         <div class="mb-6">
           <input type="text" id="nome-cliente" class="w-full p-4 rounded-2xl border-2 border-amber-300 text-lg" placeholder="Nome cliente o tavolo">
@@ -42,19 +40,15 @@
         <div id="menu-grid" class="grid grid-cols-2 gap-4"></div>
       </div>
 
-      <!-- DESTRA -->
       <div class="col-span-3 space-y-6">
         <div class="bg-white rounded-3xl shadow p-5">
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
-          <div id="ordine-corrente" class="min-h-[140px] text-sm"></div>
+          <div id="ordine-corrente" class="min-h-[160px] text-sm"></div>
 
-          <!-- SOLDI + RESTO -->
           <div class="mt-6 space-y-4 border-t pt-4">
             <div>
               <label class="block text-sm text-gray-600 mb-1">Soldi dati dal cliente (€)</label>
-              <input type="number" id="importo-consegnato" step="0.01" value="0" 
-                     class="w-full p-4 rounded-2xl border-2 border-green-400 text-3xl text-center font-bold" 
-                     oninput="calcolaResto()">
+              <input type="number" id="importo-consegnato" step="0.01" value="0" class="w-full p-4 rounded-2xl border-2 border-green-400 text-3xl text-center font-bold" oninput="calcolaResto()">
             </div>
             <div class="flex justify-between text-xl font-bold">
               <span>Totale Ordine:</span>
@@ -113,7 +107,6 @@
       caricaGiacenza();
       caricaMenu();
       caricaCronologia();
-      aggiornaTotaleSerata();
     }
 
     function caricaGiacenza() {
@@ -140,12 +133,7 @@
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, -1)" class="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-2xl font-bold text-2xl">-</button>
                 <span id="qty-${piatto.nome.replace(/\s+/g,'')}" class="w-12 text-center font-bold text-3xl">0</span>
                 <button onclick="cambiaQuantita('${piatto.nome}', ${piatto.prezzo}, 1)" class="w-10 h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl font-bold text-2xl">+</button>
-                ${isBevanda ? `
-                  <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}">
-                    <span class="text-base font-medium text-green-700">Consegnata</span>
-                  </label>
-                ` : ''}
+                ${isBevanda ? `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" class="consegnata-check w-6 h-6 accent-green-600" data-name="${piatto.nome}"><span class="text-base font-medium text-green-700">Consegnata</span></label>` : ''}
               </div>
             </div>`;
         });
@@ -161,7 +149,6 @@
       }
       item.quantita = Math.max(0, (item.quantita || 0) + delta);
       if (item.quantita === 0) ordineCorrente = ordineCorrente.filter(i => i.nome !== nome);
-
       document.getElementById(`qty-${nome.replace(/\s+/g,'')}`).textContent = item.quantita || 0;
       aggiornaOrdineCorrente();
     }
@@ -180,8 +167,7 @@
     function calcolaResto() {
       const totale = ordineCorrente.reduce((sum, i) => sum + (i.prezzo * i.quantita), 0);
       const consegnato = parseFloat(document.getElementById('importo-consegnato').value) || 0;
-      const resto = Math.max(0, consegnato - totale);
-      document.getElementById('resto').textContent = resto.toFixed(2) + " €";
+      document.getElementById('resto').textContent = Math.max(0, consegnato - totale).toFixed(2) + " €";
     }
 
     function confermaOrdine() {
@@ -200,19 +186,23 @@
         if (giacenza[item.nome] !== undefined) giacenza[item.nome] -= item.quantita;
       });
 
-      db.ref('ordini').push({
-        numero: Date.now(),
-        cliente: nome,
-        items: ordineCorrente.map(i => i.consegnata ? `${i.nome} ×${i.quantita} (Consegnata)` : `${i.nome} ×${i.quantita}`),
-        totale: totale,
-        orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
-        timestamp: Date.now()
-      }).then(() => {
-        alert("✅ Ordine registrato!");
-        ordineCorrente = [];
-        document.getElementById('nome-cliente').value = '';
-        document.getElementById('importo-consegnato').value = 0;
-        caricaTutto();
+      db.ref('ordini').once('value', snapshot => {
+        const numeroOrdine = snapshot.numChildren() + 1;
+
+        db.ref('ordini').push({
+          numero: numeroOrdine,
+          cliente: nome,
+          items: ordineCorrente.map(i => i.consegnata ? `${i.nome} ×${i.quantita} (Consegnata)` : `${i.nome} ×${i.quantita}`),
+          totale: totale,
+          orario: new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}),
+          timestamp: Date.now()
+        }).then(() => {
+          alert(`✅ Ordine #${numeroOrdine} registrato!`);
+          ordineCorrente = [];
+          document.getElementById('nome-cliente').value = '';
+          document.getElementById('importo-consegnato').value = 0;
+          caricaTutto();
+        });
       });
     }
 
@@ -223,7 +213,7 @@
         snapshot.forEach(child => {
           const o = child.val();
           total += o.totale || 0;
-          html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero ? o.numero.toString().slice(-4) : ''} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
+          html += `<div class="border-l-4 border-amber-500 pl-3 py-2"><div class="font-bold">#${o.numero} - ${o.cliente}</div><div class="text-green-600">${o.totale.toFixed(2)} € - ${o.orario}</div></div>`;
         });
         document.getElementById('cronologia').innerHTML = html || '<p class="text-gray-400">Nessun ordine ancora</p>';
         document.getElementById('totale-serata').textContent = total.toFixed(2) + " €";
@@ -238,7 +228,6 @@
       }
     }
 
-    // Avvio
     caricaTutto();
   </script>
 </body>
