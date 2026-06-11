@@ -21,6 +21,10 @@
           <p class="text-sm text-gray-500">Totale Serata</p>
           <p id="totale-serata" class="text-4xl font-bold text-green-600">0.00 €</p>
         </div>
+        <button onclick="resetCompleto()" 
+                class="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-3xl font-medium flex items-center gap-2">
+          <i class="fas fa-trash"></i> Reset Tutto
+        </button>
       </div>
     </div>
 
@@ -45,7 +49,7 @@
           <h3 class="font-bold mb-4">🛒 Ordine Corrente</h3>
           <div id="ordine-corrente" class="min-h-[160px] text-sm"></div>
 
-          <!-- RESTO -->
+          <!-- SOLDI CLIENTE + RESTO -->
           <div class="mt-6 space-y-4 border-t pt-4">
             <div>
               <label class="block text-sm text-gray-600 mb-1">Soldi dati dal cliente (€)</label>
@@ -59,7 +63,7 @@
             </div>
             <div class="flex justify-between text-2xl font-bold text-red-600 bg-red-50 p-4 rounded-2xl">
               <span>Resto da dare:</span>
-              <span id="resto">0.00 €</span>
+              <span id="resto" class="font-bold">0.00 €</span>
             </div>
           </div>
 
@@ -170,8 +174,6 @@
         html += `<div class="flex justify-between py-1"><span>${item.nome} ×${item.quantita}</span><span>${(item.prezzo * item.quantita).toFixed(2)} €</span></div>`;
       });
       document.getElementById('ordine-corrente').innerHTML = html || '<p class="text-gray-400">Nessun prodotto selezionato</p>';
-      document.getElementById('totale-ordine').textContent = totale.toFixed(2) + " €";
-      calcolaResto();
     }
 
     function calcolaResto() {
@@ -228,8 +230,15 @@
     }
 
     function resetCompleto() {
-      if (confirm("⚠️ Resettare tutto?") && confirm("Conferma 2/3") && confirm("Conferma finale")) {
+      if (confirm("⚠️ ATTENZIONE!\nVuoi resettare tutto?") && 
+          confirm("❗ CONFERMA 2/3") && 
+          confirm("❗ CONFERMA FINALE")) {
         db.ref('ordini').remove();
+        giacenza = {
+          "Arancini": 50, "Olive Ascolane": 40, "Patatine Fritte": 60, "Hot Dog": 30, "Panino Salame": 35,
+          "Acqua Naturale": 80, "Acqua Frizzante": 70, "Coca Cola": 60, "Aranciata": 50, "Birra": 40,
+          "Gelato Cioccolato": 45, "Gelato Nocciola": 45, "Gelato Fragola": 45, "Coppa Mista": 30, "Torta della Nonna": 25
+        };
         alert("✅ Tutto resettato!");
         caricaTutto();
       }
