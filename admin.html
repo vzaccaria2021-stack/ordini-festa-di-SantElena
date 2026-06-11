@@ -12,7 +12,6 @@
 <body class="bg-gray-100 min-h-screen">
   <div class="max-w-6xl mx-auto p-6">
 
-    <!-- Contatori -->
     <div class="bg-white rounded-3xl shadow p-8 mb-8">
       <div class="grid grid-cols-3 gap-8 text-center">
         <div>
@@ -30,19 +29,15 @@
       </div>
     </div>
 
-    <!-- Ricerca -->
     <div class="mb-8">
-      <div class="relative">
-        <input type="text" id="search-input" 
-               class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
-               placeholder="Cerca per numero ticket o nome cliente...">
-        <i class="fas fa-search absolute left-7 top-7 text-gray-400 text-3xl"></i>
-      </div>
+      <input type="text" id="search-input" 
+             class="w-full p-6 pl-16 text-2xl rounded-3xl border border-gray-300 focus:border-amber-500 outline-none"
+             placeholder="Cerca per numero o nome...">
     </div>
 
     <div class="bg-white rounded-3xl shadow p-8">
       <h2 class="text-4xl font-bold mb-10">Lista Ordini Registrati</h2>
-      <div id="lista-ordini" class="space-y-10"></div>
+      <div id="lista-ordini" class="space-y-8"></div>
     </div>
   </div>
 
@@ -61,74 +56,51 @@
     const db = firebase.database();
 
     function caricaOrdini() {
-      db.ref('ordini').on('value', snapshot => {
+      db.ref('ordini').on('value', (snapshot) => {
         let ordini = [];
-        snapshot.forEach(child => ordini.push(child.val()));
+        snapshot.forEach((child) => {
+          ordini.push(child.val());
+        });
 
-        const totali = ordini.length;
-        const ritirati = ordini.filter(o => o.ritirato).length;
-        const daRitirare = totali - ritirati;
-
-        document.getElementById('totale-ordini').textContent = totali;
-        document.getElementById('da-ritirare').textContent = daRitirare;
-        document.getElementById('ritirati').textContent = ritirati;
+        // Aggiorna contatori
+        document.getElementById('totale-ordini').textContent = ordini.length;
+        document.getElementById('da-ritirare').textContent = ordini.length;
+        document.getElementById('ritirati').textContent = 0;
 
         const container = document.getElementById('lista-ordini');
-        if (totali === 0) {
+        container.innerHTML = '';
+
+        if (ordini.length === 0) {
           container.innerHTML = `<p class="text-center text-gray-500 py-24 text-4xl">Nessun ordine registrato</p>`;
           return;
         }
 
-        let html = '';
-        ordini.slice().reverse().forEach((ordine, index) => {
-          const isRitirato = ordine.ritirato || false;
-          
-          let itemsHtml = ordine.items.map(item => {
-            const text = typeof item === 'string' ? item : '';
-            const isConsegnata = text.toLowerCase().includes('consegnata');
-            return isConsegnata 
-              ? `<span class="line-through text-gray-500 text-2xl">${text}</span>` 
-              : `<span class="text-2xl">${text}</span>`;
+        // Ordina dal più recente
+        ordini.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        ordini.forEach(ordine => {
+          const itemsHtml = ordine.items.map(item => {
+            if (typeof item === 'string' && item.includes('(Consegnata)')) {
+              return `<span class="line-through text-gray-500">${item}</span>`;
+            }
+            return `<span>${item}</span>`;
           }).join('<br>');
 
-          const orarioConsegna = ordine.orarioConsegna 
-            ? `<p class="text-green-600 mt-4 text-xl">📍 Consegnato alle ${ordine.orarioConsegna}</p>` 
-            : '';
-
-          html += `
-            <div class="border ${isRitirato ? 'border-green-400 bg-green-50' : 'border-gray-200'} rounded-3xl p-10">
-              <div class="flex justify-between items-start mb-8">
+          const html = `
+            <div class="border border-gray-200 rounded-3xl p-8">
+              <div class="flex justify-between items-start mb-6">
                 <div>
                   <span class="text-5xl font-bold text-amber-800">#${ordine.numero ? ordine.numero.toString().slice(-4) : ''}</span>
-                  <span class="text-gray-500 ml-6 text-2xl">${ordine.data || ''}</span>
+                  <span class="ml-4 text-gray-500">${ordine.data || ''}</span>
                 </div>
-                <div class="text-right">
-                  <span class="text-5xl font-bold text-green-600">${ordine.totale ? ordine.totale.toFixed(2) : '0.00'} €</span>
-                </div>
+                <div class="text-5xl font-bold text-green-600">${ordine.totale ? ordine.totale.toFixed(2) : '0.00'} €</div>
               </div>
-              
-              <div class="mb-8">
-                <p class="font-bold text-4xl mb-6">${ordine.cliente}</p>
-                <div class="text-gray-800 leading-relaxed">${itemsHtml}</div>
-                ${orarioConsegna}
-              </div>
-
-              <button onclick="toggleRitirato(${index})" 
-                      class="w-full py-7 text-3xl font-bold rounded-3xl ${isRitirato ? 
-                        'bg-gray-300 text-gray-600 cursor-not-allowed' : 
-                        'bg-green-600 hover:bg-green-700 text-white'}"
-                      ${isRitirato ? 'disabled' : ''}>
-                ${isRitirato ? '✓ Consegnato' : '✅ Segna come Consegnato'}
-              </button>
+              <p class="text-3xl font-bold mb-4">${ordine.cliente}</p>
+              <div class="text-xl">${itemsHtml}</div>
             </div>`;
+          container.innerHTML += html;
         });
-        
-        container.innerHTML = html || `<p class="text-center text-gray-500 py-16 text-3xl">Nessun ordine trovato</p>`;
       });
-    }
-
-    function toggleRitirato(index) {
-      alert("Funzione Segna come Consegnato in fase di sviluppo");
     }
 
     // Avvio
