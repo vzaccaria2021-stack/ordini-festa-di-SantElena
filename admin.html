@@ -75,13 +75,18 @@
           return;
         }
 
-        // Ordine numerico: prima non consegnati (in ordine di numero), poi consegnati
-        ordini.sort((a, b) => {
-          if (a.consegnato !== b.consegnato) return a.consegnato ? 1 : -1;
-          return (a.numero || 0) - (b.numero || 0);
-        });
+        // ORDINE RICHIESTO:
+        // 1. Prima tutti gli ordini NON consegnati (dal più recente)
+        // 2. Poi tutti gli ordini consegnati (dal più recente)
+        const nonConsegnati = ordini.filter(o => !o.consegnato)
+                                   .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-        ordini.forEach(ordine => {
+        const consegnati = ordini.filter(o => o.consegnato)
+                                 .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        const ordiniOrdinati = [...nonConsegnati, ...consegnati];
+
+        ordiniOrdinati.forEach(ordine => {
           const isConsegnato = ordine.consegnato || false;
 
           let itemsHtml = (ordine.items || []).map(item => {
